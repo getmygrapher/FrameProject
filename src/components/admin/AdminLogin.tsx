@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Lock, Mail, Eye, EyeOff, AlertCircle } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, AlertCircle, UserPlus } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import ForgotPassword from './ForgotPassword';
 import ResetPassword from './ResetPassword';
 import PasswordResetSuccess from './PasswordResetSuccess';
+import AdminSetup from './AdminSetup';
 
-type LoginView = 'login' | 'forgot-password' | 'reset-password' | 'reset-success';
+type LoginView = 'login' | 'forgot-password' | 'reset-password' | 'reset-success' | 'setup';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -39,7 +40,16 @@ export default function AdminLogin() {
       // No need to manually redirect - the useAdmin hook will handle state updates
       // and the parent component will automatically show the dashboard
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.');
+      console.error('Login error:', err);
+      
+      // Check if this is an admin verification error (no admin users exist)
+      if (err.message?.includes('Admin verification failed') || 
+          err.message?.includes('User not found or inactive') ||
+          err.message?.includes('Access denied. Admin privileges required')) {
+        setError('No admin users found. Please set up your first admin account.');
+      } else {
+        setError(err.message || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -54,6 +64,16 @@ export default function AdminLogin() {
   const handleResetSuccess = () => {
     setCurrentView('reset-success');
   };
+
+  const handleSetupComplete = () => {
+    setCurrentView('login');
+    setError('');
+    // Optionally pre-fill the email if we have it
+  };
+
+  if (currentView === 'setup') {
+    return <AdminSetup onBackToLogin={handleBackToLogin} onSetupComplete={handleSetupComplete} />;
+  }
 
   if (currentView === 'forgot-password') {
     return <ForgotPassword onBackToLogin={handleBackToLogin} />;
@@ -86,9 +106,22 @@ export default function AdminLogin() {
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-              <AlertCircle size={20} className="text-red-600 flex-shrink-0" />
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <p className="text-red-700 text-sm">{error}</p>
+                  {(error.includes('No admin users found') || error.includes('Admin verification failed')) && (
+                    <button
+                      onClick={() => setCurrentView('setup')}
+                      className="mt-3 flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                    >
+                      <UserPlus size={16} />
+                      Set up first admin account
+                    </button>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
@@ -182,6 +215,20 @@ export default function AdminLogin() {
               )}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <div className="text-xs text-gray-500 mb-4">
+              Don't have an admin account?
+            </div>
+            <button
+              onClick={() => setCurrentView('setup')}
+              className="flex items-center justify-center gap-2 w-full py-2 px-4 text-blue-600 hover:text-blue-700 transition-colors font-medium"
+              disabled={isLoading}
+            >
+              <UserPlus size={16} />
+              Set up first admin account
+            </button>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">
