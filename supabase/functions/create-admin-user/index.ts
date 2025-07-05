@@ -31,45 +31,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization');
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authorization header required' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
     // Initialize Supabase client with service role key for admin operations
     const supabaseAdmin = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Initialize regular client to verify the requesting user
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
-    );
-
-    // Verify the requesting user is authenticated
-    const token = authHeader.replace('Bearer ', '');
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
-
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid authentication token' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Check if there are any existing admin users
+    // Check if there are any existing admin users first
     const { data: existingAdmins, error: countError } = await supabaseAdmin
       .from('admin_users')
       .select('id', { count: 'exact' });
@@ -87,8 +55,40 @@ Deno.serve(async (req) => {
 
     const isFirstAdmin = !existingAdmins || existingAdmins.length === 0;
 
-    // If this is not the first admin, verify the requesting user is an active admin
+    // Only require authorization if this is NOT the first admin
     if (!isFirstAdmin) {
+      const authHeader = req.headers.get('Authorization');
+      if (!authHeader) {
+        return new Response(
+          JSON.stringify({ error: 'Authorization header required' }),
+          { 
+            status: 401, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      // Initialize regular client to verify the requesting user
+      const supabaseClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+      );
+
+      // Verify the requesting user is authenticated
+      const token = authHeader.replace('Bearer ', '');
+      const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+
+      if (userError || !user) {
+        return new Response(
+          JSON.stringify({ error: 'Invalid authentication token' }),
+          { 
+            status: 401, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      // Verify the requesting user is an active admin
       const { data: adminUser, error: adminError } = await supabaseClient
         .from('admin_users')
         .select('id, role, is_active')
@@ -120,12 +120,25 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body: CreateAdminRequest = await req.json();
-    const { email, password, fullName, role } = body;
+    let { email, password, fullName, role } = body;
 
     // Validate input
-    if (!email || !password || !fullName || !role) {
+    if (!email || !password || !fullName) {
       return new Response(
-        JSON.stringify({ error: 'Missing required fields: email, password, fullName, role' }),
+        JSON.stringify({ error: 'Missing required fields: email, password, fullName' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // For the first admin, automatically assign super_admin role
+    if (isFirstAdmin) {
+      role = 'super_admin';
+    } else if (!role || !['admin', 'super_admin'].includes(role)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid role. Must be admin or super_admin' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -136,16 +149,6 @@ Deno.serve(async (req) => {
     if (password.length < 8) {
       return new Response(
         JSON.stringify({ error: 'Password must be at least 8 characters long' }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    if (!['admin', 'super_admin'].includes(role)) {
-      return new Response(
-        JSON.stringify({ error: 'Invalid role. Must be admin or super_admin' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
