@@ -123,7 +123,7 @@ export class AdminService {
     return data || [];
   }
 
-  // Create new admin user (super admin only) - now uses edge function
+  // Create new admin user - handles both initial setup and subsequent admin creation
   static async createAdmin(
     email: string,
     password: string,
@@ -131,20 +131,23 @@ export class AdminService {
     role: 'admin' | 'super_admin' = 'admin'
   ): Promise<AdminUser> {
     try {
-      // Get current session for authorization
+      // Get current session (may be null during initial setup)
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (!session) {
-        throw new Error('No active session. Please log in again.');
+      // Prepare headers - conditionally include authorization
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+      };
+
+      // Only add authorization header if session exists
+      if (session) {
+        headers['Authorization'] = `Bearer ${session.access_token}`;
       }
 
       // Call the edge function to create admin user
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-admin-user`, {
         method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-          'Content-Type': 'application/json',
-        },
+        headers,
         body: JSON.stringify({
           email,
           password,
