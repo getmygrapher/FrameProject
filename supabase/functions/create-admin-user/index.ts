@@ -1,0 +1,209 @@
+import { createClient } from 'npm:@supabase/supabase-js@2';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+};
+
+interface CreateAdminRequest {
+  email: string;
+  password: string;
+  fullName: string;
+  role: 'admin' | 'super_admin';
+}
+
+Deno.serve(async (req) => {
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    // Only allow POST requests
+    if (req.method !== 'POST') {
+      return new Response(
+        JSON.stringify({ error: 'Method not allowed' }),
+        { 
+          status: 405, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Get the authorization header
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: 'Authorization header required' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Initialize Supabase client with service role key for admin operations
+    const supabaseAdmin = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Initialize regular client to verify the requesting user
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? ''
+    );
+
+    // Verify the requesting user is an authenticated admin
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
+
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid authentication token' }),
+        { 
+          status: 401, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Check if the requesting user is an active admin
+    const { data: adminUser, error: adminError } = await supabaseClient
+      .from('admin_users')
+      .select('id, role, is_active')
+      .eq('id', user.id)
+      .eq('is_active', true)
+      .single();
+
+    if (adminError || !adminUser) {
+      return new Response(
+        JSON.stringify({ error: 'Access denied. Admin privileges required.' }),
+        { 
+          status: 403, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Parse request body
+    const body: CreateAdminRequest = await req.json();
+    const { email, password, fullName, role } = body;
+
+    // Validate input
+    if (!email || !password || !fullName || !role) {
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: email, password, fullName, role' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    if (password.length < 8) {
+      return new Response(
+        JSON.stringify({ error: 'Password must be at least 8 characters long' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    if (!['admin', 'super_admin'].includes(role)) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid role. Must be admin or super_admin' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Create the auth user using admin client
+    const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      email_confirm: true,
+      user_metadata: {
+        full_name: fullName
+      }
+    });
+
+    if (authError) {
+      console.error('Error creating auth user:', authError);
+      return new Response(
+        JSON.stringify({ error: `Failed to create user account: ${authError.message}` }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    if (!authData.user) {
+      return new Response(
+        JSON.stringify({ error: 'Failed to create user account' }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    // Create the admin record using admin client
+    const { data: adminData, error: adminInsertError } = await supabaseAdmin
+      .from('admin_users')
+      .insert({
+        id: authData.user.id,
+        email,
+        full_name: fullName,
+        role,
+        is_active: true
+      })
+      .select()
+      .single();
+
+    if (adminInsertError) {
+      console.error('Error creating admin user:', adminInsertError);
+      
+      // Clean up auth user if admin creation fails
+      try {
+        await supabaseAdmin.auth.admin.deleteUser(authData.user.id);
+      } catch (cleanupError) {
+        console.error('Error cleaning up auth user:', cleanupError);
+      }
+      
+      return new Response(
+        JSON.stringify({ error: `Failed to create admin record: ${adminInsertError.message}` }),
+        { 
+          status: 400, 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+        }
+      );
+    }
+
+    return new Response(
+      JSON.stringify({ 
+        success: true, 
+        admin: adminData 
+      }),
+      { 
+        status: 200, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+
+  } catch (error) {
+    console.error('Unexpected error:', error);
+    return new Response(
+      JSON.stringify({ error: 'Internal server error' }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+});
