@@ -12,7 +12,7 @@ export class AdminService {
       .select('id, is_active')
       .eq('id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error checking admin status:', error);
@@ -33,7 +33,7 @@ export class AdminService {
       .select('*')
       .eq('id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching admin user:', error);
@@ -69,10 +69,17 @@ export class AdminService {
       .select('*')
       .eq('id', authData.user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
-    if (adminError || !adminData) {
+    if (adminError) {
       console.error('Admin verification error:', adminError);
+      // Sign out the user since there was an error
+      await supabase.auth.signOut();
+      throw new Error('Error verifying admin privileges');
+    }
+
+    if (!adminData) {
+      console.error('Admin verification failed: User not found or inactive');
       // Sign out the user since they're not an admin
       await supabase.auth.signOut();
       throw new Error('Access denied. Admin privileges required.');
