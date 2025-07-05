@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_ANON_KEY') ?? ''
     );
 
-    // Verify the requesting user is an authenticated admin
+    // Verify the requesting user is authenticated
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser(token);
 
@@ -69,22 +69,53 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Check if the requesting user is an active admin
-    const { data: adminUser, error: adminError } = await supabaseClient
+    // Check if there are any existing admin users
+    const { data: existingAdmins, error: countError } = await supabaseAdmin
       .from('admin_users')
-      .select('id, role, is_active')
-      .eq('id', user.id)
-      .eq('is_active', true)
-      .single();
+      .select('id', { count: 'exact' });
 
-    if (adminError || !adminUser) {
+    if (countError) {
+      console.error('Error checking existing admins:', countError);
       return new Response(
-        JSON.stringify({ error: 'Access denied. Admin privileges required.' }),
+        JSON.stringify({ error: 'Failed to verify admin status' }),
         { 
-          status: 403, 
+          status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
+    }
+
+    const isFirstAdmin = !existingAdmins || existingAdmins.length === 0;
+
+    // If this is not the first admin, verify the requesting user is an active admin
+    if (!isFirstAdmin) {
+      const { data: adminUser, error: adminError } = await supabaseClient
+        .from('admin_users')
+        .select('id, role, is_active')
+        .eq('id', user.id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (adminError) {
+        console.error('Error checking admin user:', adminError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to verify admin status' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      if (!adminUser) {
+        return new Response(
+          JSON.stringify({ error: 'Access denied. Admin privileges required.' }),
+          { 
+            status: 403, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
     }
 
     // Parse request body
@@ -188,7 +219,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        admin: adminData 
+        admin: adminData,
+        isFirstAdmin 
       }),
       { 
         status: 200, 
