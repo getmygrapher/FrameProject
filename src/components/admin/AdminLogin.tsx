@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Lock, Mail, Eye, EyeOff, AlertCircle, UserPlus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Lock, Mail, Eye, EyeOff, AlertCircle, UserPlus, Chrome } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import ForgotPassword from './ForgotPassword';
 import ResetPassword from './ResetPassword';
@@ -9,17 +9,15 @@ import AdminSetup from './AdminSetup';
 type LoginView = 'login' | 'forgot-password' | 'reset-password' | 'reset-success' | 'setup';
 
 export default function AdminLogin() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentView, setCurrentView] = useState<LoginView>('login');
   const [resetToken, setResetToken] = useState('');
-  const { login } = useAdmin();
+  const { loginWithGoogle, checkFirstTimeSetup } = useAdmin();
+  const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false);
 
   // Check for reset token in URL on component mount
-  React.useEffect(() => {
+  useEffect(() => {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
     if (token) {
@@ -30,25 +28,39 @@ export default function AdminLogin() {
     }
   }, []);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  // Check if this is first time setup
+  useEffect(() => {
+    const checkSetup = async () => {
+      try {
+        const needsSetup = await checkFirstTimeSetup();
+        setIsFirstTimeSetup(needsSetup);
+      } catch (error) {
+        console.error('Error checking first time setup:', error);
+      }
+    };
+    
+    checkSetup();
+  }, [checkFirstTimeSetup]);
+
+  const handleGoogleLogin = async () => {
     setError('');
     setIsLoading(true);
 
     try {
-      await login(email, password);
+      await loginWithGoogle();
       // No need to manually redirect - the useAdmin hook will handle state updates
       // and the parent component will automatically show the dashboard
     } catch (err: any) {
-      console.error('Login error:', err);
+      console.error('Google login error:', err);
       
-      // Check if this is an admin verification error (no admin users exist)
       if (err.message?.includes('Admin verification failed') || 
           err.message?.includes('User not found or inactive') ||
           err.message?.includes('Access denied. Admin privileges required')) {
-        setError('No admin users found. Please set up your first admin account.');
+        setError('Access denied. This Google account is not authorized for admin access.');
+      } else if (err.message?.includes('popup_closed_by_user')) {
+        setError('Login cancelled. Please try again.');
       } else {
-        setError(err.message || 'Login failed. Please check your credentials.');
+        setError(err.message || 'Google login failed. Please try again.');
       }
     } finally {
       setIsLoading(false);
@@ -68,7 +80,7 @@ export default function AdminLogin() {
   const handleSetupComplete = () => {
     setCurrentView('login');
     setError('');
-    // Optionally pre-fill the email if we have it
+    setIsFirstTimeSetup(false);
   };
 
   if (currentView === 'setup') {
@@ -111,7 +123,7 @@ export default function AdminLogin() {
                 <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-red-700 text-sm">{error}</p>
-                  {(error.includes('No admin users found') || error.includes('Admin verification failed')) && (
+                  {isFirstTimeSetup && (error.includes('not authorized') || error.includes('Access denied')) && (
                     <button
                       onClick={() => setCurrentView('setup')}
                       className="mt-3 flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
@@ -125,110 +137,77 @@ export default function AdminLogin() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <Mail size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="admin@framecraftpro.com"
-                  required
-                  disabled={isLoading}
-                />
+          {isFirstTimeSetup && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-start gap-3">
+                <UserPlus size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h3 className="font-medium text-blue-900 mb-1">First Time Setup</h3>
+                  <p className="text-sm text-blue-800 mb-3">
+                    No admin users found. Set up your first admin account to get started.
+                  </p>
+                  <button
+                    onClick={() => setCurrentView('setup')}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                  >
+                    Set up first admin account →
+                  </button>
+                </div>
               </div>
             </div>
+          )}
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                  placeholder="Enter your password"
-                  required
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
-                  disabled={isLoading}
-                >
-                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <input
-                  id="remember-me"
-                  name="remember-me"
-                  type="checkbox"
-                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  disabled={isLoading}
-                />
-                <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                  Remember me
-                </label>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setCurrentView('forgot-password')}
-                className="text-sm text-blue-600 hover:text-blue-500 transition-colors"
-                disabled={isLoading}
-              >
-                Forgot password?
-              </button>
-            </div>
-
+          <div className="space-y-4">
             <button
-              type="submit"
+              onClick={handleGoogleLogin}
               disabled={isLoading}
-              className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors ${
+              className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-3 ${
                 isLoading
-                  ? 'bg-gray-400 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                  ? 'bg-gray-400 cursor-not-allowed text-white'
+                  : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
               }`}
             >
               {isLoading ? (
                 <div className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
                   Signing in...
                 </div>
               ) : (
-                'Sign In'
+                <>
+                  <Chrome size={20} className="text-blue-600" />
+                  Continue with Google
+                </>
               )}
             </button>
-          </form>
 
-          <div className="mt-6 text-center">
-            <div className="text-xs text-gray-500 mb-4">
-              Don't have an admin account?
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <div className="w-full border-t border-gray-300" />
+              </div>
+              <div className="relative flex justify-center text-sm">
+                <span className="px-2 bg-white text-gray-500">or</span>
+              </div>
             </div>
+
             <button
-              onClick={() => setCurrentView('setup')}
-              className="flex items-center justify-center gap-2 w-full py-2 px-4 text-blue-600 hover:text-blue-700 transition-colors font-medium"
+              onClick={() => setCurrentView('forgot-password')}
+              className="w-full text-sm text-blue-600 hover:text-blue-500 transition-colors py-2"
               disabled={isLoading}
             >
-              <UserPlus size={16} />
-              Set up first admin account
+              Need help accessing your account?
             </button>
           </div>
+
+          {!isFirstTimeSetup && (
+            <div className="mt-6 text-center">
+              <div className="text-xs text-gray-500 mb-4">
+                Don't have admin access?
+              </div>
+              <p className="text-xs text-gray-500">
+                Contact your system administrator to get admin privileges for your Google account.
+              </p>
+            </div>
+          )}
 
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">

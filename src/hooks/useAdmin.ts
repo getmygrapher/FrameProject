@@ -74,20 +74,29 @@ export function useAdmin() {
     }
   };
 
-  const login = async (email: string, password: string) => {
+  const loginWithGoogle = async () => {
     try {
       setLoading(true);
-      const { admin: adminUser } = await AdminService.login(email, password);
+      const { admin: adminUser } = await AdminService.loginWithGoogle();
       setAdmin(adminUser);
       setIsAuthenticated(true);
       return adminUser;
     } catch (error) {
-      console.error('Login error:', error);
+      console.error('Google login error:', error);
       setAdmin(null);
       setIsAuthenticated(false);
       throw error;
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkFirstTimeSetup = async () => {
+    try {
+      return await AdminService.needsFirstTimeSetup();
+    } catch (error) {
+      console.error('Error checking first time setup:', error);
+      return false;
     }
   };
 
@@ -106,8 +115,9 @@ export function useAdmin() {
     admin,
     loading,
     isAuthenticated,
-    login,
+    loginWithGoogle,
     logout,
-    checkAdminStatus
+    checkAdminStatus,
+    checkFirstTimeSetup
   };
 }

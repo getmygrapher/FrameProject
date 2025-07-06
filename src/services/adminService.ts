@@ -43,60 +43,160 @@ export class AdminService {
     return data;
   }
 
-  // Admin login
-  static async login(email: string, password: string): Promise<{ user: any; admin: AdminUser | null }> {
-    // First, sign in with Supabase Auth
-    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-      email,
-      password
+  // Check if first time setup is needed
+  static async needsFirstTimeSetup(): Promise<boolean> {
+    const { data, error } = await supabase
+      .from('admin_users')
+      .select('id', { count: 'exact' })
+      .eq('is_active', true);
+
+    if (error) {
+      console.error('Error checking admin count:', error);
+      return false;
+    }
+
+    return !data || data.length === 0;
+  }
+
+  // Google OAuth login
+  static async loginWithGoogle(): Promise<{ user: any; admin: AdminUser | null }> {
+    // Sign in with Google OAuth
+    const { data: authData, error: authError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/admin`
+      }
     });
 
     if (authError) {
-      console.error('Authentication error:', authError);
-      throw new Error('Invalid email or password');
+      console.error('Google OAuth error:', authError);
+      throw new Error('Google authentication failed');
     }
 
-    if (!authData.user) {
-      throw new Error('Authentication failed');
+    // Wait for the OAuth flow to complete
+    return new Promise((resolve, reject) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          subscription.unsubscribe();
+          
+          try {
+            // Check if user is an active admin
+            const { data: adminData, error: adminError } = await supabase
+              .from('admin_users')
+              .select('*')
+              .eq('id', session.user.id)
+              .eq('is_active', true)
+              .maybeSingle();
+
+            if (adminError) {
+              console.error('Admin verification error:', adminError);
+              await supabase.auth.signOut();
+              reject(new Error('Error verifying admin privileges'));
+              return;
+            }
+
+            if (!adminData) {
+              console.error('Admin verification failed: User not found or inactive');
+              await supabase.auth.signOut();
+              reject(new Error('Access denied. Admin privileges required.'));
+              return;
+            }
+
+            // Update last login timestamp
+            try {
+              await supabase
+                .from('admin_users')
+                .update({ last_login: new Date().toISOString() })
+                .eq('id', session.user.id);
+            } catch (updateError) {
+              console.error('Error updating last login:', updateError);
+            }
+
+            resolve({ user: session.user, admin: adminData });
+          } catch (error) {
+            subscription.unsubscribe();
+            reject(error);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          subscription.unsubscribe();
+          reject(new Error('Authentication cancelled'));
+        }
+      });
+
+      // Set a timeout to prevent hanging
+      setTimeout(() => {
+        subscription.unsubscribe();
+        reject(new Error('Authentication timeout'));
+      }, 60000); // 60 seconds timeout
+    });
+  }
+
+  // Setup first admin with Google OAuth
+  static async setupFirstAdminWithGoogle(): Promise<AdminUser> {
+    // First check if setup is actually needed
+    const needsSetup = await this.needsFirstTimeSetup();
+    if (!needsSetup) {
+      throw new Error('Admin users already exist. Setup not needed.');
     }
 
-    // Wait a moment for the session to be established
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Sign in with Google OAuth
+    const { data: authData, error: authError } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/admin`
+      }
+    });
 
-    // Check if user is an active admin
-    const { data: adminData, error: adminError } = await supabase
-      .from('admin_users')
-      .select('*')
-      .eq('id', authData.user.id)
-      .eq('is_active', true)
-      .maybeSingle();
-
-    if (adminError) {
-      console.error('Admin verification error:', adminError);
-      // Sign out the user since there was an error
-      await supabase.auth.signOut();
-      throw new Error('Error verifying admin privileges');
+    if (authError) {
+      console.error('Google OAuth error:', authError);
+      throw new Error('Google authentication failed');
     }
 
-    if (!adminData) {
-      console.error('Admin verification failed: User not found or inactive');
-      // Sign out the user since they're not an admin
-      await supabase.auth.signOut();
-      throw new Error('Access denied. Admin privileges required.');
-    }
+    // Wait for the OAuth flow to complete and create admin record
+    return new Promise((resolve, reject) => {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (event === 'SIGNED_IN' && session?.user) {
+          subscription.unsubscribe();
+          
+          try {
+            // Create admin record for the authenticated user
+            const { data: adminData, error: adminError } = await supabase
+              .from('admin_users')
+              .insert({
+                id: session.user.id,
+                email: session.user.email!,
+                full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email,
+                role: 'super_admin',
+                is_active: true
+              })
+              .select()
+              .single();
 
-    // Update last login timestamp
-    try {
-      await supabase
-        .from('admin_users')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', authData.user.id);
-    } catch (updateError) {
-      console.error('Error updating last login:', updateError);
-      // Don't fail login for this
-    }
+            if (adminError) {
+              console.error('Error creating admin record:', adminError);
+              await supabase.auth.signOut();
+              reject(new Error('Failed to create admin record'));
+              return;
+            }
 
-    return { user: authData.user, admin: adminData };
+            resolve(adminData);
+          } catch (error) {
+            subscription.unsubscribe();
+            await supabase.auth.signOut();
+            reject(error);
+          }
+        } else if (event === 'SIGNED_OUT') {
+          subscription.unsubscribe();
+          reject(new Error('Authentication cancelled'));
+        }
+      });
+
+      // Set a timeout to prevent hanging
+      setTimeout(() => {
+        subscription.unsubscribe();
+        reject(new Error('Authentication timeout'));
+      }, 60000); // 60 seconds timeout
+    });
   }
 
   // Admin logout
@@ -123,54 +223,11 @@ export class AdminService {
     return data || [];
   }
 
-  // Create new admin user - handles both initial setup and subsequent admin creation
-  static async createAdmin(
-    email: string,
-    password: string,
-    fullName: string,
-    role: 'admin' | 'super_admin' = 'admin'
-  ): Promise<AdminUser> {
-    try {
-      // Get current session (may be null during initial setup)
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // Prepare headers - conditionally include authorization
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-      };
-
-      // Only add authorization header if session exists
-      if (session) {
-        headers['Authorization'] = `Bearer ${session.access_token}`;
-      }
-
-      // Call the edge function to create admin user
-      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/create-admin-user`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          email,
-          password,
-          fullName,
-          role
-        })
-      });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to create admin user');
-      }
-
-      if (!result.success || !result.admin) {
-        throw new Error('Failed to create admin user');
-      }
-
-      return result.admin;
-    } catch (error: any) {
-      console.error('Error in createAdmin:', error);
-      throw error;
-    }
+  // Create new admin user via Google OAuth (for existing admins to add new ones)
+  static async createAdminWithGoogle(role: 'admin' | 'super_admin' = 'admin'): Promise<AdminUser> {
+    // This would be used by existing admins to add new admin users
+    // The new user would need to authenticate with Google first
+    throw new Error('This feature requires additional implementation for inviting users');
   }
 
   // Update admin user (super admin only)
@@ -201,5 +258,15 @@ export class AdminService {
       console.error('Error deactivating admin user:', error);
       throw error;
     }
+  }
+
+  // Legacy method - kept for backward compatibility but will throw error
+  static async createAdmin(
+    email: string,
+    password: string,
+    fullName: string,
+    role: 'admin' | 'super_admin' = 'admin'
+  ): Promise<AdminUser> {
+    throw new Error('Email/password authentication is disabled. Please use Google OAuth instead.');
   }
 }
