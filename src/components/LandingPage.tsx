@@ -6,10 +6,15 @@ import {
   CreditCard, Smartphone, Clock, Zap, Search, User, ChevronDown, Menu, X, Home
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { useAuth } from '../hooks/useAuth';
 import ProductCatalog from './ProductCatalog';
+import UserLogin from './auth/UserLogin';
+import UserRegister from './auth/UserRegister';
+import UserProfile from './auth/UserProfile';
 
 export default function LandingPage() {
   const { dispatch } = useApp();
+  const { user, isAuthenticated, logout } = useAuth();
   const [timeLeft, setTimeLeft] = useState({
     hours: 23,
     minutes: 45,
@@ -20,6 +25,9 @@ export default function LandingPage() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [showProductCatalog, setShowProductCatalog] = useState(false);
   const [selectedProductCategory, setSelectedProductCategory] = useState('All');
+  const [showLogin, setShowLogin] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   // Countdown timer effect
   useEffect(() => {
@@ -55,6 +63,25 @@ export default function LandingPage() {
 
   const goToAdmin = () => {
     window.open('/admin', '_blank');
+  };
+
+  const handleLoginSuccess = (user: any) => {
+    setShowLogin(false);
+    setShowRegister(false);
+  };
+
+  const handleRegisterSuccess = (user: any) => {
+    setShowLogin(false);
+    setShowRegister(false);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      setShowProfile(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   const categories = [
@@ -163,16 +190,46 @@ export default function LandingPage() {
               <div className="flex items-center gap-4">
                 {/* User Account - Hidden on mobile */}
                 <div className="hidden lg:flex items-center gap-2">
-                  <User size={20} className="text-gray-600" />
-                  <div className="text-sm">
-                    <button className="text-gray-600 hover:text-gray-900 transition-colors">
-                      Login
-                    </button>
-                    <span className="text-gray-400 mx-1">|</span>
-                    <button className="text-gray-600 hover:text-gray-900 transition-colors">
-                      Register
-                    </button>
-                  </div>
+                  {isAuthenticated && user ? (
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowProfile(true)}
+                        className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+                      >
+                        {user.user_metadata?.avatar_url ? (
+                          <img
+                            src={user.user_metadata.avatar_url}
+                            alt="Profile"
+                            className="w-8 h-8 rounded-full object-cover"
+                          />
+                        ) : (
+                          <User size={20} />
+                        )}
+                        <span className="text-sm font-medium">
+                          {user.user_metadata?.full_name || user.email}
+                        </span>
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <User size={20} className="text-gray-600" />
+                      <div className="text-sm">
+                        <button
+                          onClick={() => setShowLogin(true)}
+                          className="text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                          Login
+                        </button>
+                        <span className="text-gray-400 mx-1">|</span>
+                        <button
+                          onClick={() => setShowRegister(true)}
+                          className="text-gray-600 hover:text-gray-900 transition-colors"
+                        >
+                          Register
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Start Framing Button */}
@@ -214,6 +271,37 @@ export default function LandingPage() {
         </header>
 
         <ProductCatalog category={selectedProductCategory} />
+
+        {/* Auth Modals */}
+        {showLogin && (
+          <UserLogin
+            onClose={() => setShowLogin(false)}
+            onSwitchToRegister={() => {
+              setShowLogin(false);
+              setShowRegister(true);
+            }}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        )}
+
+        {showRegister && (
+          <UserRegister
+            onClose={() => setShowRegister(false)}
+            onSwitchToLogin={() => {
+              setShowRegister(false);
+              setShowLogin(true);
+            }}
+            onRegisterSuccess={handleRegisterSuccess}
+          />
+        )}
+
+        {showProfile && user && (
+          <UserProfile
+            user={user}
+            onClose={() => setShowProfile(false)}
+            onLogout={handleLogout}
+          />
+        )}
       </div>
     );
   }
@@ -303,16 +391,46 @@ export default function LandingPage() {
             <div className="flex items-center gap-4">
               {/* User Account - Hidden on mobile */}
               <div className="hidden lg:flex items-center gap-2">
-                <User size={20} className="text-gray-600" />
-                <div className="text-sm">
-                  <button className="text-gray-600 hover:text-gray-900 transition-colors">
-                    Login
-                  </button>
-                  <span className="text-gray-400 mx-1">|</span>
-                  <button className="text-gray-600 hover:text-gray-900 transition-colors">
-                    Register
-                  </button>
-                </div>
+                {isAuthenticated && user ? (
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowProfile(true)}
+                      className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+                    >
+                      {user.user_metadata?.avatar_url ? (
+                        <img
+                          src={user.user_metadata.avatar_url}
+                          alt="Profile"
+                          className="w-8 h-8 rounded-full object-cover"
+                        />
+                      ) : (
+                        <User size={20} />
+                      )}
+                      <span className="text-sm font-medium">
+                        {user.user_metadata?.full_name || user.email}
+                      </span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <User size={20} className="text-gray-600" />
+                    <div className="text-sm">
+                      <button
+                        onClick={() => setShowLogin(true)}
+                        className="text-gray-600 hover:text-gray-900 transition-colors"
+                      >
+                        Login
+                      </button>
+                      <span className="text-gray-400 mx-1">|</span>
+                      <button
+                        onClick={() => setShowRegister(true)}
+                        className="text-gray-600 hover:text-gray-900 transition-colors"
+                      >
+                        Register
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Start Framing Button */}
@@ -410,9 +528,50 @@ export default function LandingPage() {
 
                 {/* Mobile User Actions */}
                 <div className="border-t p-4 space-y-2">
-                  <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg">
-                    Login / Register
-                  </button>
+                  {isAuthenticated && user ? (
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowProfile(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg flex items-center gap-2"
+                      >
+                        <User size={16} />
+                        Profile
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleLogout();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg"
+                      >
+                        Sign Out
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => {
+                          setShowLogin(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg"
+                      >
+                        Login
+                      </button>
+                      <button
+                        onClick={() => {
+                          setShowRegister(true);
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg"
+                      >
+                        Register
+                      </button>
+                    </>
+                  )}
                   <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg">
                     Track Order
                   </button>
@@ -1033,6 +1192,37 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* Auth Modals */}
+      {showLogin && (
+        <UserLogin
+          onClose={() => setShowLogin(false)}
+          onSwitchToRegister={() => {
+            setShowLogin(false);
+            setShowRegister(true);
+          }}
+          onLoginSuccess={handleLoginSuccess}
+        />
+      )}
+
+      {showRegister && (
+        <UserRegister
+          onClose={() => setShowRegister(false)}
+          onSwitchToLogin={() => {
+            setShowRegister(false);
+            setShowLogin(true);
+          }}
+          onRegisterSuccess={handleRegisterSuccess}
+        />
+      )}
+
+      {showProfile && user && (
+        <UserProfile
+          user={user}
+          onClose={() => setShowProfile(false)}
+          onLogout={handleLogout}
+        />
+      )}
     </div>
   );
 }
