@@ -42,8 +42,26 @@ export default function AdminSetup({ onBackToLogin, onSetupComplete }: AdminSetu
 
     try {
       // Validate form
-      if (!formData.email || !formData.password || !formData.confirmPassword || !formData.fullName) {
-        throw new Error('Please fill in all required fields');
+      if (!formData.email.trim()) {
+        throw new Error('Email address is required');
+      }
+      
+      if (!formData.password) {
+        throw new Error('Password is required');
+      }
+      
+      if (!formData.confirmPassword) {
+        throw new Error('Password confirmation is required');
+      }
+      
+      if (!formData.fullName.trim()) {
+        throw new Error('Full name is required');
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        throw new Error('Please enter a valid email address');
       }
 
       if (formData.password !== formData.confirmPassword) {
@@ -55,13 +73,21 @@ export default function AdminSetup({ onBackToLogin, onSetupComplete }: AdminSetu
         throw new Error(`Password must contain: ${passwordErrors.join(', ')}`);
       }
 
+      console.log('Creating admin user with:', {
+        email: formData.email,
+        fullName: formData.fullName,
+        role: 'super_admin'
+      });
+
       // Create the first admin user
-      await AdminService.createAdmin(
-        formData.email,
+      const result = await AdminService.createAdmin(
+        formData.email.trim(),
         formData.password,
-        formData.fullName,
+        formData.fullName.trim(),
         'super_admin'
       );
+
+      console.log('Admin user created successfully:', result);
 
       setSuccess(true);
       setTimeout(() => {
@@ -70,7 +96,31 @@ export default function AdminSetup({ onBackToLogin, onSetupComplete }: AdminSetu
 
     } catch (err: any) {
       console.error('Error creating admin user:', err);
-      setError(err.message || 'Failed to create admin user. Please try again.');
+      console.error('Error details:', {
+        message: err.message,
+        stack: err.stack,
+        name: err.name,
+        cause: err.cause
+      });
+      
+      // Provide more specific error messages
+      let errorMessage = 'Failed to create admin user. Please try again.';
+      
+      if (err.message) {
+        if (err.message.includes('already exists') || err.message.includes('duplicate')) {
+          errorMessage = 'An admin user with this email already exists.';
+        } else if (err.message.includes('network') || err.message.includes('fetch')) {
+          errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (err.message.includes('validation') || err.message.includes('invalid')) {
+          errorMessage = err.message;
+        } else if (err.message.includes('unauthorized') || err.message.includes('permission')) {
+          errorMessage = 'Permission denied. Please check your configuration.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -127,9 +177,12 @@ export default function AdminSetup({ onBackToLogin, onSetupComplete }: AdminSetu
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
-              <AlertCircle size={20} className="text-red-600 flex-shrink-0" />
-              <p className="text-red-700 text-sm">{error}</p>
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+              <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-red-700 text-sm font-medium">Error</p>
+                <p className="text-red-600 text-sm mt-1">{error}</p>
+              </div>
             </div>
           )}
 
@@ -255,9 +308,9 @@ export default function AdminSetup({ onBackToLogin, onSetupComplete }: AdminSetu
 
             <button
               type="submit"
-              disabled={isLoading || !isPasswordValid || formData.password !== formData.confirmPassword || !formData.email || !formData.fullName}
+              disabled={isLoading || !isPasswordValid || formData.password !== formData.confirmPassword || !formData.email.trim() || !formData.fullName.trim()}
               className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors ${
-                isLoading || !isPasswordValid || formData.password !== formData.confirmPassword || !formData.email || !formData.fullName
+                isLoading || !isPasswordValid || formData.password !== formData.confirmPassword || !formData.email.trim() || !formData.fullName.trim()
                   ? 'bg-gray-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
               }`}
