@@ -60,7 +60,7 @@ export class UserAuthService {
     
     if (error) {
       // Handle "Auth session missing!" as a warning, not an error
-      if (error instanceof AuthApiError && error.message === 'Auth session missing!') {
+      if (error instanceof AuthApiError && error.message.includes('Auth session missing')) {
         console.info('No active auth session found');
       } else {
         console.error('Error getting current user:', error);
