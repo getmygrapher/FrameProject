@@ -74,6 +74,23 @@ export function useAdmin() {
     }
   };
 
+  const loginWithEmail = async (email: string, password: string) => {
+    try {
+      setLoading(true);
+      const { admin: adminUser } = await AdminService.loginWithEmail(email, password);
+      setAdmin(adminUser);
+      setIsAuthenticated(true);
+      return adminUser;
+    } catch (error) {
+      console.error('Email login error:', error);
+      setAdmin(null);
+      setIsAuthenticated(false);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const loginWithGoogle = async () => {
     try {
       setLoading(true);
@@ -115,6 +132,7 @@ export function useAdmin() {
     admin,
     loading,
     isAuthenticated,
+    loginWithEmail,
     loginWithGoogle,
     logout,
     checkAdminStatus,

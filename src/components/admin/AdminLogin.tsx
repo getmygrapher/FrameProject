@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Mail, Eye, EyeOff, AlertCircle, UserPlus, Chrome } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Chrome, ArrowLeft, User, AlertCircle, UserPlus } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
 import ForgotPassword from './ForgotPassword';
 import ResetPassword from './ResetPassword';
@@ -9,11 +9,14 @@ import AdminSetup from './AdminSetup';
 type LoginView = 'login' | 'forgot-password' | 'reset-password' | 'reset-success' | 'setup';
 
 export default function AdminLogin() {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [currentView, setCurrentView] = useState<LoginView>('login');
   const [resetToken, setResetToken] = useState('');
-  const { loginWithGoogle, checkFirstTimeSetup } = useAdmin();
+  const { loginWithEmail, loginWithGoogle, checkFirstTimeSetup } = useAdmin();
   const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false);
 
   // Check for reset token in URL on component mount
@@ -42,6 +45,22 @@ export default function AdminLogin() {
     checkSetup();
   }, [checkFirstTimeSetup]);
 
+  const handleEmailLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError('');
+    setIsLoading(true);
+
+    try {
+      await loginWithEmail(email, password);
+      // No need to manually redirect - the useAdmin hook will handle state updates
+    } catch (err: any) {
+      console.error('Email login error:', err);
+      setError(err.message || 'Login failed. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleGoogleLogin = async () => {
     setError('');
     setIsLoading(true);
@@ -49,14 +68,13 @@ export default function AdminLogin() {
     try {
       await loginWithGoogle();
       // No need to manually redirect - the useAdmin hook will handle state updates
-      // and the parent component will automatically show the dashboard
     } catch (err: any) {
       console.error('Google login error:', err);
       
       if (err.message?.includes('Admin verification failed') || 
           err.message?.includes('User not found or inactive') ||
           err.message?.includes('Access denied. Admin privileges required')) {
-        setError('Access denied. This Google account is not authorized for admin access.');
+        setError('Access denied. This account is not authorized for admin access.');
       } else if (err.message?.includes('popup_closed_by_user')) {
         setError('Login cancelled. Please try again.');
       } else {
@@ -157,44 +175,99 @@ export default function AdminLogin() {
             </div>
           )}
 
-          <div className="space-y-4">
-            <button
-              onClick={handleGoogleLogin}
-              disabled={isLoading}
-              className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-3 ${
-                isLoading
-                  ? 'bg-gray-400 cursor-not-allowed text-white'
-                  : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
-              }`}
-            >
-              {isLoading ? (
-                <div className="flex items-center justify-center gap-2">
-                  <div className="w-5 h-5 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
-                  Signing in...
-                </div>
-              ) : (
-                <>
-                  <Chrome size={20} className="text-blue-600" />
-                  Continue with Google
-                </>
-              )}
-            </button>
-
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-gray-300" />
+          <form onSubmit={handleEmailLogin} className="space-y-6">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="admin@framecraftpro.com"
+                  required
+                />
               </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">or</span>
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
+                Password
+              </label>
+              <div className="relative">
+                <Lock size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <input
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full pl-10 pr-12 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+                  placeholder="Enter your password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
+                </button>
               </div>
             </div>
 
             <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition-colors ${
+                isLoading
+                  ? 'bg-gray-400 cursor-not-allowed'
+                  : 'bg-blue-600 hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+              }`}
+            >
+              {isLoading ? (
+                <div className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  Signing in...
+                </div>
+              ) : (
+                'Sign In'
+              )}
+            </button>
+          </form>
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300" />
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-white text-gray-500">or continue with</span>
+            </div>
+          </div>
+
+          <button
+            onClick={handleGoogleLogin}
+            disabled={isLoading}
+            className={`w-full py-3 px-4 rounded-lg font-semibold transition-colors flex items-center justify-center gap-3 ${
+              isLoading
+                ? 'bg-gray-400 cursor-not-allowed text-white'
+                : 'bg-white border-2 border-gray-300 text-gray-700 hover:border-gray-400 hover:bg-gray-50'
+            }`}
+          >
+            <Chrome size={20} className="text-blue-600" />
+            Continue with Google
+          </button>
+
+          <div className="mt-6 text-center">
+            <button
               onClick={() => setCurrentView('forgot-password')}
-              className="w-full text-sm text-blue-600 hover:text-blue-500 transition-colors py-2"
+              className="text-sm text-blue-600 hover:text-blue-500 transition-colors"
               disabled={isLoading}
             >
-              Need help accessing your account?
+              Forgot your password?
             </button>
           </div>
 
@@ -204,7 +277,7 @@ export default function AdminLogin() {
                 Don't have admin access?
               </div>
               <p className="text-xs text-gray-500">
-                Contact your system administrator to get admin privileges for your Google account.
+                Contact your system administrator to get admin privileges.
               </p>
             </div>
           )}
