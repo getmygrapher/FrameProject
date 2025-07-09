@@ -12,18 +12,29 @@ export function useAuth() {
 
     const initializeAuth = async () => {
       try {
-        // First check if we have a session
+        // Check for OAuth callback parameters in URL
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        
+        if (accessToken) {
+          // Clear the hash from URL
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+        
+        // Get current session
         const { data: { session } } = await supabase.auth.getSession();
         
-        if (session?.user) {
+        if (mounted && session?.user) {
           setUser(session.user);
           setIsAuthenticated(true);
-        } else {
+        } else if (mounted) {
           setUser(null);
           setIsAuthenticated(false);
         }
         
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+        }
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (mounted) {
@@ -40,7 +51,7 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      if (event === 'SIGNED_IN' && session?.user) {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
         setUser(session.user);
         setIsAuthenticated(true);
       } else if (event === 'SIGNED_OUT') {

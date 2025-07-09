@@ -13,6 +13,15 @@ export function useAdmin() {
 
     const initializeAuth = async () => {
       try {
+        // Check for OAuth callback parameters in URL
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const accessToken = hashParams.get('access_token');
+        
+        if (accessToken) {
+          // Clear the hash from URL
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+        
         // Check current session first
         const { data: { session } } = await supabase.auth.getSession();
         
@@ -41,7 +50,7 @@ export function useAdmin() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      if (event === 'SIGNED_IN' && session?.user) {
+      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
         // User just signed in, check if they're an admin
         await checkAdminStatus();
       } else if (event === 'SIGNED_OUT') {
