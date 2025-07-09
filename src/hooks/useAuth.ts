@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { UserAuthService } from '../services/userAuthService';
 
 export function useAuth() {
@@ -11,13 +12,18 @@ export function useAuth() {
 
     const initializeAuth = async () => {
       try {
-        const currentUser = await UserAuthService.getCurrentUser();
+        // First check if we have a session
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (mounted) {
-          setUser(currentUser);
-          setIsAuthenticated(!!currentUser);
-          setLoading(false);
+        if (session?.user) {
+          setUser(session.user);
+          setIsAuthenticated(true);
+        } else {
+          setUser(null);
+          setIsAuthenticated(false);
         }
+        
+        setLoading(false);
       } catch (error) {
         console.error('Error initializing auth:', error);
         if (mounted) {
@@ -31,7 +37,7 @@ export function useAuth() {
     initializeAuth();
 
     // Listen for auth state changes
-    const { data: { subscription } } = UserAuthService.onAuthStateChange(async (event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
       if (event === 'SIGNED_IN' && session?.user) {

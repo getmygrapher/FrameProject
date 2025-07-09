@@ -39,10 +39,14 @@ export class UserAuthService {
 
   // Login with Google OAuth
   static async loginWithGoogle() {
-    const { data, error } = await supabase.auth.signInWithOAuth({
+    const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}`
+        redirectTo: `${window.location.origin}/`,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
       }
     });
 
@@ -50,8 +54,6 @@ export class UserAuthService {
       console.error('Google OAuth error:', error);
       throw new Error('Google authentication failed');
     }
-
-    return data;
   }
 
   // Get current user

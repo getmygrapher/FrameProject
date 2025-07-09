@@ -132,10 +132,14 @@ export class AdminService {
   static async loginWithGoogle(): Promise<{ user: any; admin: AdminUser | null }> {
     try {
       // Sign in with Google OAuth
-      const { data: authData, error: authError } = await supabase.auth.signInWithOAuth({
+      const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/admin`
+          redirectTo: `${window.location.origin}/admin`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
@@ -280,10 +284,14 @@ export class AdminService {
       }
 
       // Sign in with Google OAuth
-      const { data: authData, error: authError } = await supabase.auth.signInWithOAuth({
+      const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/admin`
+          redirectTo: `${window.location.origin}/admin`,
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          }
         }
       });
 
