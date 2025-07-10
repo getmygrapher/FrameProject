@@ -132,9 +132,8 @@ export function useAdmin() {
   const loginWithGoogle = async () => {
     try {
       setLoading(true);
-      // Don't await this as it redirects
       await AdminService.loginWithGoogle();
-      // The auth state change listener will handle the rest
+      // OAuth will redirect, so we don't need to handle the response here
     } catch (error) {
       console.error('Google login error:', error);
       setAdmin(null);

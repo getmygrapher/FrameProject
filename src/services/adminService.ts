@@ -135,7 +135,7 @@ export class AdminService {
       const { error: authError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/admin.html`,
+          redirectTo: `${window.location.origin}${window.location.pathname}`,
           queryParams: {
             access_type: 'offline',
             prompt: 'consent',
@@ -148,62 +148,8 @@ export class AdminService {
         throw new Error('Google authentication failed');
       }
 
-      // Wait for the OAuth flow to complete
-      return new Promise((resolve, reject) => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          if (event === 'SIGNED_IN' && session?.user) {
-            subscription.unsubscribe();
-            
-            try {
-              // Check if user is an active admin
-              const { data: adminData, error: adminError } = await supabase
-                .from('admin_users')
-                .select('*')
-                .eq('id', session.user.id)
-                .eq('is_active', true)
-                .maybeSingle();
-
-              if (adminError) {
-                console.error('Admin verification error:', adminError);
-                await supabase.auth.signOut();
-                reject(new Error('Error verifying admin privileges'));
-                return;
-              }
-
-              if (!adminData) {
-                console.error('Admin verification failed: User not found or inactive');
-                await supabase.auth.signOut();
-                reject(new Error('Access denied. Admin privileges required.'));
-                return;
-              }
-
-              // Update last login timestamp
-              try {
-                await supabase
-                  .from('admin_users')
-                  .update({ last_login: new Date().toISOString() })
-                  .eq('id', session.user.id);
-              } catch (updateError) {
-                console.error('Error updating last login:', updateError);
-              }
-
-              resolve({ user: session.user, admin: adminData });
-            } catch (error) {
-              subscription.unsubscribe();
-              reject(error);
-            }
-          } else if (event === 'SIGNED_OUT') {
-            subscription.unsubscribe();
-            reject(new Error('Authentication cancelled'));
-          }
-        });
-
-        // Set a timeout to prevent hanging
-        setTimeout(() => {
-          subscription.unsubscribe();
-          reject(new Error('Authentication timeout'));
-        }, 60000); // 60 seconds timeout
-      });
+      // Don't wait for the OAuth flow here - let the hook handle it
+      return { user: null, admin: null };
     } catch (error) {
       console.error('Error in loginWithGoogle:', error);
       throw error;

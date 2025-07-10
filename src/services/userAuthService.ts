@@ -39,10 +39,15 @@ export class UserAuthService {
 
   // Login with Google OAuth
   static async loginWithGoogle() {
+    const currentUrl = window.location.origin;
+    const redirectTo = window.location.pathname.includes('/admin') 
+      ? `${currentUrl}/admin.html` 
+      : currentUrl;
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
-        redirectTo: `${window.location.origin}`,
+        redirectTo,
         queryParams: {
           access_type: 'offline',
           prompt: 'consent',
