@@ -17,16 +17,27 @@ export function useAuth() {
         const accessToken = hashParams.get('access_token');
         
         if (accessToken) {
-          // Clear the hash from URL
+          // Clear the hash from URL immediately
           window.history.replaceState(null, '', window.location.pathname);
         }
         
         // Get current session
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          if (mounted) {
+            setUser(null);
+            setIsAuthenticated(false);
+            setLoading(false);
+          }
+          return;
+        }
         
         if (mounted && session?.user) {
           setUser(session.user);
           setIsAuthenticated(true);
+          console.log('User authenticated:', session.user.email);
         } else if (mounted) {
           setUser(null);
           setIsAuthenticated(false);
@@ -51,17 +62,31 @@ export function useAuth() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-        setUser(session.user);
-        setIsAuthenticated(true);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-        setIsAuthenticated(false);
-      } else if (event === 'USER_UPDATED' && session?.user) {
-        setUser(session.user);
+      console.log('User auth state change:', event, session?.user?.email);
+
+      try {
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+          setUser(session.user);
+          setIsAuthenticated(true);
+          console.log('User signed in:', session.user.email);
+        } else if (event === 'SIGNED_OUT') {
+          setUser(null);
+          setIsAuthenticated(false);
+          console.log('User signed out');
+        } else if (event === 'USER_UPDATED' && session?.user) {
+          setUser(session.user);
+          console.log('User updated:', session.user.email);
+        }
+        
+        setLoading(false);
+      } catch (error) {
+        console.error('Error handling auth state change:', error);
+        if (mounted) {
+          setUser(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+        }
       }
-      
-      setLoading(false);
     });
 
     return () => {
@@ -103,8 +128,9 @@ export function useAuth() {
   const loginWithGoogle = async () => {
     try {
       setLoading(true);
+      // Don't await this as it redirects
       await UserAuthService.loginWithGoogle();
-      // OAuth flow will handle the state update via onAuthStateChange
+      // The auth state change listener will handle the rest
     } catch (error) {
       console.error('Google login error:', error);
       setLoading(false);

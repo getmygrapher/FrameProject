@@ -18,12 +18,22 @@ export function useAdmin() {
         const accessToken = hashParams.get('access_token');
         
         if (accessToken) {
-          // Clear the hash from URL
+          // Clear the hash from URL immediately
           window.history.replaceState(null, '', window.location.pathname);
         }
         
         // Check current session first
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          if (mounted) {
+            setAdmin(null);
+            setIsAuthenticated(false);
+            setLoading(false);
+          }
+          return;
+        }
         
         if (session?.user && mounted) {
           // User is logged in, check if they're an admin
@@ -50,14 +60,26 @@ export function useAdmin() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
 
-      if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-        // User just signed in, check if they're an admin
-        await checkAdminStatus();
-      } else if (event === 'SIGNED_OUT') {
-        // User signed out
-        setAdmin(null);
-        setIsAuthenticated(false);
-        setLoading(false);
+      console.log('Admin auth state change:', event, session?.user?.email);
+
+      try {
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
+          // User just signed in or token refreshed, check if they're an admin
+          setLoading(true);
+          await checkAdminStatus();
+        } else if (event === 'SIGNED_OUT') {
+          // User signed out
+          setAdmin(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+        }
+      } catch (error) {
+        console.error('Error handling auth state change:', error);
+        if (mounted) {
+          setAdmin(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+        }
       }
     });
 
@@ -72,8 +94,15 @@ export function useAdmin() {
       setLoading(true);
       const adminUser = await AdminService.getCurrentAdmin();
       
-      setAdmin(adminUser);
-      setIsAuthenticated(!!adminUser);
+      if (adminUser) {
+        setAdmin(adminUser);
+        setIsAuthenticated(true);
+        console.log('Admin authenticated:', adminUser.email);
+      } else {
+        setAdmin(null);
+        setIsAuthenticated(false);
+        console.log('User is not an admin or admin record not found');
+      }
     } catch (error) {
       console.error('Error checking admin status:', error);
       setAdmin(null);
@@ -103,17 +132,15 @@ export function useAdmin() {
   const loginWithGoogle = async () => {
     try {
       setLoading(true);
-      const { admin: adminUser } = await AdminService.loginWithGoogle();
-      setAdmin(adminUser);
-      setIsAuthenticated(true);
-      return adminUser;
+      // Don't await this as it redirects
+      await AdminService.loginWithGoogle();
+      // The auth state change listener will handle the rest
     } catch (error) {
       console.error('Google login error:', error);
       setAdmin(null);
       setIsAuthenticated(false);
-      throw error;
-    } finally {
       setLoading(false);
+      throw error;
     }
   };
 
