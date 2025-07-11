@@ -65,10 +65,17 @@ export function useAdmin() {
       try {
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
           // User just signed in or token refreshed, check if they're an admin
-          setLoading(true);
           await checkAdminStatus();
         } else if (event === 'SIGNED_OUT') {
           // User signed out
+          setAdmin(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+        } else if (event === 'USER_UPDATED' && session?.user) {
+          // User updated, recheck admin status
+          await checkAdminStatus();
+        } else {
+          // Handle any other auth state that doesn't have a user
           setAdmin(null);
           setIsAuthenticated(false);
           setLoading(false);
@@ -108,6 +115,7 @@ export function useAdmin() {
       setAdmin(null);
       setIsAuthenticated(false);
     } finally {
+      // CRITICAL: Always set loading to false regardless of outcome
       setLoading(false);
     }
   };
