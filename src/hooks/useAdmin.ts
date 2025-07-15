@@ -62,6 +62,7 @@ export function useAdmin() {
 
       console.log('Admin auth state change:', event, session?.user?.email);
 
+      setLoading(true); // Always set loading true at the start of handler
       try {
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
           // User just signed in or token refreshed, check if they're an admin
@@ -85,8 +86,9 @@ export function useAdmin() {
         if (mounted) {
           setAdmin(null);
           setIsAuthenticated(false);
-          setLoading(false);
         }
+      } finally {
+        if (mounted) setLoading(false); // Always set loading false at the end
       }
     });
 
@@ -108,14 +110,13 @@ export function useAdmin() {
       } else {
         setAdmin(null);
         setIsAuthenticated(false);
-        console.log('User is not an admin or admin record not found');
+        console.warn('User is not an admin or admin record not found');
       }
     } catch (error) {
       console.error('Error checking admin status:', error);
       setAdmin(null);
       setIsAuthenticated(false);
     } finally {
-      // CRITICAL: Always set loading to false regardless of outcome
       setLoading(false);
     }
   };
