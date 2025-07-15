@@ -48,27 +48,35 @@ export function useAdmin() {
   }, []);
 
   const checkAdminStatus = async () => {
+    console.log('[useAdmin] checkAdminStatus called');
     try {
       setLoading(true);
       const { data: { user }, error: sessionError } = await supabase.auth.getUser();
       if (sessionError) {
-        console.error('Supabase session error:', sessionError);
+        console.error('[useAdmin] Supabase session error:', sessionError);
       } else {
-        console.log('Supabase session user:', user?.id, user?.email);
+        console.log('[useAdmin] Supabase session user:', user?.id, user?.email);
+      }
+      if (!user) {
+        console.warn('[useAdmin] No user found in session');
+        setAdmin(null);
+        setIsAuthenticated(false);
+        setLoading(false);
+        return;
       }
       const adminUser = await AdminService.getCurrentAdmin();
-      console.log('AdminService.getCurrentAdmin() result:', adminUser);
+      console.log('[useAdmin] AdminService.getCurrentAdmin() result:', adminUser);
       if (adminUser) {
         setAdmin(adminUser);
         setIsAuthenticated(true);
-        console.log('Admin authenticated:', adminUser.email);
+        console.log('[useAdmin] Admin authenticated:', adminUser.email);
       } else {
         setAdmin(null);
         setIsAuthenticated(false);
-        console.warn('User is not an admin or admin record not found');
+        console.warn('[useAdmin] User is not an admin or admin record not found');
       }
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.error('[useAdmin] Error checking admin status:', error);
       setAdmin(null);
       setIsAuthenticated(false);
     } finally {
