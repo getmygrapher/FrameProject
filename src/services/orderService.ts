@@ -9,6 +9,14 @@
 import { supabase } from '../lib/supabase';
 import type { Order } from '../lib/supabase';
 
+// Helper to format Supabase errors
+function formatSupabaseError(error: any, fallback: string): Error {
+  if (error && error.message) {
+    return new Error(error.message);
+  }
+  return new Error(fallback);
+}
+
 export class OrderService {
   static async createOrder(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>) {
     const { data, error } = await supabase
@@ -16,8 +24,10 @@ export class OrderService {
       .insert([orderData])
       .select()
       .single();
-
-    if (error) throw error;
+    if (error) {
+      console.error('Error creating order:', error);
+      throw formatSupabaseError(error, 'Failed to create order. Please try again.');
+    }
     return data;
   }
 
@@ -26,8 +36,10 @@ export class OrderService {
       .from('orders')
       .select('*')
       .order('created_at', { ascending: false });
-
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching orders:', error);
+      throw formatSupabaseError(error, 'Failed to fetch orders. Please try again.');
+    }
     return data;
   }
 
@@ -37,8 +49,10 @@ export class OrderService {
       .select('*')
       .eq('id', id)
       .single();
-
-    if (error) throw error;
+    if (error) {
+      console.error('Error fetching order by ID:', error);
+      throw formatSupabaseError(error, 'Failed to fetch order. Please try again.');
+    }
     return data;
   }
 
@@ -49,8 +63,10 @@ export class OrderService {
       .eq('id', id)
       .select()
       .single();
-
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating order status:', error);
+      throw formatSupabaseError(error, 'Failed to update order status. Please try again.');
+    }
     return data;
   }
 
@@ -61,8 +77,10 @@ export class OrderService {
       .eq('id', id)
       .select()
       .single();
-
-    if (error) throw error;
+    if (error) {
+      console.error('Error updating payment status:', error);
+      throw formatSupabaseError(error, 'Failed to update payment status. Please try again.');
+    }
     return data;
   }
 
@@ -73,7 +91,10 @@ export class OrderService {
         .from('orders')
         .select('status, total_amount, payment_status');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching order stats:', error);
+        throw formatSupabaseError(error, 'Failed to fetch order statistics. Please try again.');
+      }
 
       // Calculate statistics
       const stats = {
@@ -93,8 +114,8 @@ export class OrderService {
 
       return stats;
     } catch (error) {
-      console.error('Error fetching order stats:', error);
-      throw error;
+      console.error('Error in getOrderStats:', error);
+      throw new Error('Failed to fetch order statistics. Please try again.');
     }
   }
 
@@ -103,7 +124,9 @@ export class OrderService {
       .from('orders')
       .delete()
       .eq('id', id);
-
-    if (error) throw error;
+    if (error) {
+      console.error('Error deleting order:', error);
+      throw formatSupabaseError(error, 'Failed to delete order. Please try again.');
+    }
   }
 }
