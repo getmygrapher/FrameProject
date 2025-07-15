@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Mail, Send, CheckCircle, AlertCircle } from 'lucide-react';
 import { PasswordResetService } from '../../services/passwordResetService';
+import Notification from '../Notification';
 
 interface ForgotPasswordProps {
   onBackToLogin: () => void;
@@ -11,6 +12,7 @@ export default function ForgotPassword({ onBackToLogin }: ForgotPasswordProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [notification, setNotification] = useState<{ message: string; type?: 'success' | 'error' | 'info' } | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -18,7 +20,7 @@ export default function ForgotPassword({ onBackToLogin }: ForgotPasswordProps) {
     setIsLoading(true);
 
     try {
-      await PasswordResetService.requestPasswordReset(email);
+      await PasswordResetService.requestPasswordReset(email, (msg) => setNotification({ message: msg, type: 'info' }));
       setSuccess(true);
     } catch (err: any) {
       setError(err.message || 'Failed to send reset email. Please try again.');
@@ -76,6 +78,14 @@ export default function ForgotPassword({ onBackToLogin }: ForgotPasswordProps) {
               <AlertCircle size={20} className="text-red-600 flex-shrink-0" />
               <p className="text-red-700 text-sm">{error}</p>
             </div>
+          )}
+
+          {notification && (
+            <Notification
+              message={notification.message}
+              type={notification.type}
+              onClose={() => setNotification(null)}
+            />
           )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
