@@ -64,8 +64,8 @@ export function useAdmin() {
 
       setLoading(true); // Always set loading true at the start of handler
       try {
-        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-          // User just signed in or token refreshed, check if they're an admin
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
+          // User just signed in, token refreshed, or session restored: check if they're an admin
           await checkAdminStatus();
         } else if (event === 'SIGNED_OUT') {
           // User signed out
