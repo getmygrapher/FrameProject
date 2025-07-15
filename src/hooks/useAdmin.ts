@@ -49,16 +49,26 @@ export function useAdmin() {
 
   const checkAdminStatus = async () => {
     console.log('[useAdmin] checkAdminStatus called');
-    try {
+    let user = null;
+    let sessionError = null;
+    // Retry up to 5 times if user is not available
+    for (let attempt = 1; attempt <= 5; attempt++) {
       setLoading(true);
-      const { data: { user }, error: sessionError } = await supabase.auth.getUser();
+      const { data, error } = await supabase.auth.getUser();
+      user = data.user;
+      sessionError = error;
+      if (user) break;
+      console.warn(`[useAdmin] No user found in session (attempt ${attempt}), retrying...`);
+      await new Promise(res => setTimeout(res, 200));
+    }
+    try {
       if (sessionError) {
         console.error('[useAdmin] Supabase session error:', sessionError);
       } else {
         console.log('[useAdmin] Supabase session user:', user?.id, user?.email);
       }
       if (!user) {
-        console.warn('[useAdmin] No user found in session');
+        console.warn('[useAdmin] No user found in session after retries');
         setAdmin(null);
         setIsAuthenticated(false);
         setLoading(false);
