@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 import UserLogin from './auth/UserLogin';
 import UserRegister from './auth/UserRegister';
 import UserProfile from './auth/UserProfile';
+import type { AppStep } from '../types';
 
 export default function Header() {
   const { state, dispatch } = useApp();
@@ -28,10 +29,10 @@ export default function Header() {
   };
 
   const goBack = () => {
-    const stepOrder: Array<string> = ['home', 'upload', 'customize', 'cart', 'checkout', 'confirmation'];
+    const stepOrder: AppStep[] = ['home', 'upload', 'customize', 'cart', 'checkout', 'confirmation'];
     const currentIndex = stepOrder.indexOf(state.currentStep);
     if (currentIndex > 0) {
-      dispatch({ type: 'SET_STEP', payload: stepOrder[currentIndex - 1] as any });
+      dispatch({ type: 'SET_STEP', payload: stepOrder[currentIndex - 1] });
     }
   };
 
