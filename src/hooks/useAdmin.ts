@@ -11,72 +11,21 @@ export function useAdmin() {
   useEffect(() => {
     let mounted = true;
 
-    const initializeAuth = async () => {
-      try {
-        // Check for OAuth callback parameters in URL
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        
-        if (accessToken) {
-          // Clear the hash from URL immediately
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-        
-        // Check current session first
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Error getting session:', sessionError);
-          if (mounted) {
-            setAdmin(null);
-            setIsAuthenticated(false);
-            setLoading(false);
-          }
-          return;
-        }
-        
-        if (session?.user && mounted) {
-          // User is logged in, check if they're an admin
-          await checkAdminStatus();
-        } else if (mounted) {
-          // No session, user is not authenticated
-          setAdmin(null);
-          setIsAuthenticated(false);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        if (mounted) {
-          setAdmin(null);
-          setIsAuthenticated(false);
-          setLoading(false);
-        }
-      }
-    };
-
-    initializeAuth();
-
-    // Listen for auth state changes
+    // Listen for auth state changes only (no initializeAuth)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
-
-      console.log('Admin auth state change:', event, session?.user?.email);
-
-      setLoading(true); // Always set loading true at the start of handler
+      console.log('[useAdmin] onAuthStateChange fired:', event, session?.user?.email);
+      setLoading(true);
       try {
         if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') && session?.user) {
-          // User just signed in, token refreshed, or session restored: check if they're an admin
           await checkAdminStatus();
         } else if (event === 'SIGNED_OUT') {
-          // User signed out
           setAdmin(null);
           setIsAuthenticated(false);
           setLoading(false);
         } else if (event === 'USER_UPDATED' && session?.user) {
-          // User updated, recheck admin status
           await checkAdminStatus();
         } else {
-          // Handle any other auth state that doesn't have a user
           setAdmin(null);
           setIsAuthenticated(false);
           setLoading(false);
@@ -88,7 +37,7 @@ export function useAdmin() {
           setIsAuthenticated(false);
         }
       } finally {
-        if (mounted) setLoading(false); // Always set loading false at the end
+        if (mounted) setLoading(false);
       }
     });
 
@@ -101,7 +50,6 @@ export function useAdmin() {
   const checkAdminStatus = async () => {
     try {
       setLoading(true);
-      // Log current session user
       const { data: { user }, error: sessionError } = await supabase.auth.getUser();
       if (sessionError) {
         console.error('Supabase session error:', sessionError);
@@ -149,7 +97,6 @@ export function useAdmin() {
     try {
       setLoading(true);
       await AdminService.loginWithGoogle();
-      // OAuth will redirect, so we don't need to handle the response here
     } catch (error) {
       console.error('Google login error:', error);
       setAdmin(null);
