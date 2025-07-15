@@ -54,9 +54,10 @@ export function useAdmin() {
     // Retry up to 5 times if user is not available
     for (let attempt = 1; attempt <= 5; attempt++) {
       setLoading(true);
-      const { data, error } = await supabase.auth.getUser();
-      user = data.user;
+      const { data, error } = await supabase.auth.getSession();
+      const session = data.session;
       sessionError = error;
+      user = session?.user;
       if (user) break;
       console.warn(`[useAdmin] No user found in session (attempt ${attempt}), retrying...`);
       await new Promise(res => setTimeout(res, 200));
