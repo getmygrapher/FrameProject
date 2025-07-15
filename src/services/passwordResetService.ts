@@ -2,7 +2,7 @@ import { supabase } from '../lib/supabase';
 
 export class PasswordResetService {
   // Request password reset
-  static async requestPasswordReset(email: string): Promise<void> {
+  static async requestPasswordReset(email: string, onDevNotification?: (msg: string) => void): Promise<void> {
     // First check if user exists and is an admin
     const { data: adminUsers, error: adminError } = await supabase
       .from('admin_users')
@@ -41,7 +41,7 @@ export class PasswordResetService {
     }
 
     // Send reset email (in production, this would use a proper email service)
-    await this.sendResetEmail(email, token);
+    await this.sendResetEmail(email, token, onDevNotification);
   }
 
   // Verify reset token
@@ -108,16 +108,17 @@ export class PasswordResetService {
   }
 
   // Send reset email (mock implementation - replace with actual email service)
-  private static async sendResetEmail(email: string, token: string): Promise<void> {
+  // Accepts an optional onDevNotification callback for development feedback
+  private static async sendResetEmail(email: string, token: string, onDevNotification?: (msg: string) => void): Promise<void> {
     const resetUrl = `${window.location.origin}/admin?token=${token}`;
     
     // In production, replace this with actual email service (SendGrid, AWS SES, etc.)
     console.log(`Password reset email would be sent to: ${email}`);
     console.log(`Reset URL: ${resetUrl}`);
     
-    // For development, you could show this in a modal or alert
-    if (import.meta.env.DEV) {
-      alert(`Development Mode: Password reset link:\n${resetUrl}\n\nCopy this URL and paste it in your browser to reset the password.`);
+    // For development, use callback for notification instead of alert
+    if (import.meta.env.DEV && onDevNotification) {
+      onDevNotification(`Development Mode: Password reset link:\n${resetUrl}\n\nCopy this URL and paste it in your browser to reset the password.`);
     }
     
     // Example with a real email service:

@@ -8,7 +8,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
     url: supabaseUrl ? 'Present' : 'Missing',
     key: supabaseAnonKey ? 'Present' : 'Missing'
   });
-  throw new Error('Missing Supabase environment variables. Please check your .env file.');
+  throw new Error(
+    'Missing Supabase environment variables.\n' +
+    'Please ensure your .env file contains:\n' +
+    '  VITE_SUPABASE_URL=...\n' +
+    '  VITE_SUPABASE_ANON_KEY=...\n' +
+    'Then restart the development server.'
+  );
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
