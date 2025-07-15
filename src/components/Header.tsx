@@ -15,6 +15,7 @@ export default function Header() {
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   const goToHome = () => {
     dispatch({ type: 'SET_STEP', payload: 'home' });
@@ -57,8 +58,10 @@ export default function Header() {
     try {
       await logout();
       setShowProfile(false);
+      setLogoutError(null);
     } catch (error) {
       console.error('Logout error:', error);
+      setLogoutError('Failed to log out. Please try again.');
     }
   };
 
@@ -87,6 +90,11 @@ export default function Header() {
     <>
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         {/* Top Bar */}
+        {logoutError && (
+          <div className="bg-red-100 text-red-700 px-4 py-2 text-center text-sm">
+            {logoutError}
+          </div>
+        )}
         <div className="bg-gray-50 border-b">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-10 text-sm">

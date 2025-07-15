@@ -11,6 +11,7 @@ export default function FrameCustomizer() {
   const [sizes, setSizes] = useState<FrameSize[]>([]);
   const [thickness, setThickness] = useState<FrameThickness[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadFrameData();
@@ -49,8 +50,10 @@ export default function FrameCustomizer() {
         const defaultThickness = thicknessData.find(t => t.name === '1/2"') || thicknessData[0];
         updateConfig({ thickness: defaultThickness });
       }
+      setError(null);
     } catch (error) {
       console.error('Error loading frame data:', error);
+      setError('Failed to load frame options. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -87,6 +90,16 @@ export default function FrameCustomizer() {
               ))}
             </div>
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-8">
+        <div className="text-red-700 bg-red-100 p-4 rounded text-center">
+          {error}
         </div>
       </div>
     );
