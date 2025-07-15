@@ -101,8 +101,15 @@ export function useAdmin() {
   const checkAdminStatus = async () => {
     try {
       setLoading(true);
+      // Log current session user
+      const { data: { user }, error: sessionError } = await supabase.auth.getUser();
+      if (sessionError) {
+        console.error('Supabase session error:', sessionError);
+      } else {
+        console.log('Supabase session user:', user?.id, user?.email);
+      }
       const adminUser = await AdminService.getCurrentAdmin();
-      
+      console.log('AdminService.getCurrentAdmin() result:', adminUser);
       if (adminUser) {
         setAdmin(adminUser);
         setIsAuthenticated(true);
