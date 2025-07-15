@@ -1,3 +1,11 @@
+/**
+ * FrameService provides methods for managing frame materials, colors, sizes, and thicknesses.
+ * 
+ * Error Handling Contract:
+ * - All async methods may throw errors (from Supabase or custom Error instances).
+ * - Callers MUST wrap calls in try/catch and provide user feedback as appropriate.
+ * - Errors are logged to the console for debugging, but not handled internally.
+ */
 import { supabase, FrameMaterial, FrameColor, FrameSize, FrameThickness } from '../lib/supabase';
 
 export class FrameService {

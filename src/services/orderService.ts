@@ -1,3 +1,11 @@
+/**
+ * OrderService provides methods for managing orders and order statistics.
+ * 
+ * Error Handling Contract:
+ * - All async methods may throw errors (from Supabase or custom Error instances).
+ * - Callers MUST wrap calls in try/catch and provide user feedback as appropriate.
+ * - Errors are logged to the console for debugging, but not handled internally.
+ */
 import { supabase } from '../lib/supabase';
 import type { Order } from '../lib/supabase';
 

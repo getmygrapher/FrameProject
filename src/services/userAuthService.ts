@@ -1,3 +1,11 @@
+/**
+ * UserAuthService provides authentication-related methods using Supabase Auth.
+ * 
+ * Error Handling Contract:
+ * - All async methods may throw errors (usually instances of Error with a user-friendly message).
+ * - Callers MUST wrap calls in try/catch and provide user feedback as appropriate.
+ * - Errors are logged to the console for debugging, but not handled internally.
+ */
 import { supabase } from '../lib/supabase';
 import { AuthApiError } from '@supabase/supabase-js';
 
