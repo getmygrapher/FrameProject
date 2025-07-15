@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import { Upload, Image as ImageIcon, X, AlertCircle, Info } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { PhotoInfo } from '../types';
+import Notification from './Notification';
 
 // Minimum resolution requirements for printing
 const MIN_RESOLUTION = {
@@ -15,10 +16,11 @@ export default function PhotoUpload() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [resolutionError, setResolutionError] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type?: 'success' | 'error' | 'info' } | null>(null);
 
   const processFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file.');
+      setNotification({ message: 'Please select a valid image file.', type: 'error' });
       return;
     }
 
@@ -61,7 +63,7 @@ export default function PhotoUpload() {
     };
     
     img.onerror = () => {
-      alert('Error loading image. Please try a different file.');
+      handleImageError();
       setIsProcessing(false);
       URL.revokeObjectURL(url);
     };
@@ -105,6 +107,10 @@ export default function PhotoUpload() {
     } else {
       return { level: 'poor', color: 'text-red-600', bg: 'bg-red-50', text: 'Too Low for Printing' };
     }
+  };
+
+  const handleImageError = () => {
+    setNotification({ message: 'Error loading image. Please try a different file.', type: 'error' });
   };
 
   if (state.photo) {
@@ -278,6 +284,13 @@ export default function PhotoUpload() {
           <div>Professional printing on archival paper with UV-resistant inks</div>
         </div>
       </div>
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
     </div>
   );
 }

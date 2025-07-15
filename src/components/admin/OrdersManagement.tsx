@@ -6,6 +6,7 @@ import {
 import { OrderService } from '../../services/orderService';
 import { Order } from '../../lib/supabase';
 import { formatPrice } from '../../utils/pricing';
+import Notification from '../Notification';
 
 export default function OrdersManagement() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -13,6 +14,7 @@ export default function OrdersManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [notification, setNotification] = useState<{ message: string; type?: 'success' | 'error' | 'info' } | null>(null);
 
   useEffect(() => {
     loadOrders();
@@ -44,7 +46,7 @@ export default function OrdersManagement() {
     }
   };
 
-  const downloadPhoto = async (photoUrl: string, orderNumber: string, itemIndex: number) => {
+  const handleDownloadPhoto = async (photoUrl: string, orderNumber: string, itemIndex: number) => {
     try {
       // Create a temporary anchor element to trigger download
       const link = document.createElement('a');
@@ -70,15 +72,15 @@ export default function OrdersManagement() {
       }
     } catch (error) {
       console.error('Error downloading photo:', error);
-      alert('Error downloading photo. Please try again.');
+      setNotification({ message: 'Error downloading photo. Please try again.', type: 'error' });
     }
   };
 
-  const downloadAllPhotos = async (order: Order) => {
+  const handleDownloadAllPhotos = async (order: Order) => {
     try {
       for (let i = 0; i < order.order_items.length; i++) {
         const item = order.order_items[i];
-        await downloadPhoto(item.photo_url, order.order_number, i);
+        await handleDownloadPhoto(item.photo_url, order.order_number, i);
         // Add a small delay between downloads to avoid overwhelming the browser
         if (i < order.order_items.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -86,7 +88,7 @@ export default function OrdersManagement() {
       }
     } catch (error) {
       console.error('Error downloading all photos:', error);
-      alert('Error downloading photos. Please try again.');
+      setNotification({ message: 'Error downloading photos. Please try again.', type: 'error' });
     }
   };
 
@@ -140,6 +142,13 @@ export default function OrdersManagement() {
 
   return (
     <div className="p-6">
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
+      )}
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
@@ -241,7 +250,7 @@ export default function OrdersManagement() {
                         <Eye size={16} />
                       </button>
                       <button
-                        onClick={() => downloadAllPhotos(order)}
+                        onClick={() => handleDownloadAllPhotos(order)}
                         className="text-green-600 hover:text-green-900 transition-colors"
                         title="Download All Photos"
                       >
@@ -325,7 +334,7 @@ export default function OrdersManagement() {
                 <div className="flex items-center justify-between mb-4">
                   <h4 className="font-medium text-gray-900">Order Items</h4>
                   <button
-                    onClick={() => downloadAllPhotos(selectedOrder)}
+                    onClick={() => handleDownloadAllPhotos(selectedOrder)}
                     className="flex items-center gap-2 px-3 py-1 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 transition-colors"
                   >
                     <Download size={16} />
@@ -342,7 +351,7 @@ export default function OrdersManagement() {
                           className="w-16 h-16 object-cover rounded"
                         />
                         <button
-                          onClick={() => downloadPhoto(item.photo_url, selectedOrder.order_number, index)}
+                          onClick={() => handleDownloadPhoto(item.photo_url, selectedOrder.order_number, index)}
                           className="absolute -top-1 -right-1 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center hover:bg-green-700 transition-colors"
                           title="Download Photo"
                         >

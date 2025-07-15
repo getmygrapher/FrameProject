@@ -5,6 +5,7 @@ import {
   CheckCircle, Settings as SettingsIcon
 } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
+import Notification from '../Notification';
 
 interface SystemSettings {
   siteName: string;
@@ -70,6 +71,8 @@ export default function AdminSettings() {
     confirmPassword: ''
   });
 
+  const [notification, setNotification] = useState<{ message: string; type?: 'success' | 'error' | 'info' } | null>(null);
+
   const tabs = [
     { id: 'general', label: 'General', icon: <SettingsIcon size={16} /> },
     { id: 'notifications', label: 'Notifications', icon: <Bell size={16} /> },
@@ -117,7 +120,7 @@ export default function AdminSettings() {
 
   const handleProfileUpdate = async () => {
     if (profileData.newPassword && profileData.newPassword !== profileData.confirmPassword) {
-      alert('New passwords do not match');
+      setNotification({ message: 'New passwords do not match', type: 'error' });
       return;
     }
 
@@ -547,6 +550,14 @@ export default function AdminSettings() {
             {saveStatus === 'error' && 'Error saving settings. Please try again.'}
           </span>
         </div>
+      )}
+
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          onClose={() => setNotification(null)}
+        />
       )}
 
       <div className="bg-white rounded-lg shadow-sm">
