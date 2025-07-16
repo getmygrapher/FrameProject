@@ -91,6 +91,7 @@ export default function AdminSetup({ onBackToLogin, onSetupComplete }: AdminSetu
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+    setError('');
   };
 
   if (success) {

@@ -94,6 +94,7 @@ export default function AdminUsers() {
       ...prev,
       [field]: value
     }));
+    setError(null);
   };
 
   if (loading) {

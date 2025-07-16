@@ -477,7 +477,7 @@ function AddMaterialModal({ onClose, onSuccess }: { onClose: () => void; onSucce
               <input
                 type="text"
                 value={formData.name}
-                onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
+                onChange={(e) => { setFormData(prev => ({ ...prev, name: e.target.value })); setError(null); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="e.g., Premium Oak"
                 required
@@ -490,7 +490,7 @@ function AddMaterialModal({ onClose, onSuccess }: { onClose: () => void; onSucce
               </label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value as 'wood' | 'metal' }))}
+                onChange={(e) => { setFormData(prev => ({ ...prev, category: e.target.value as 'wood' | 'metal' })); setError(null); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               >
@@ -506,7 +506,7 @@ function AddMaterialModal({ onClose, onSuccess }: { onClose: () => void; onSucce
               <input
                 type="text"
                 value={formData.texture}
-                onChange={(e) => setFormData(prev => ({ ...prev, texture: e.target.value }))}
+                onChange={(e) => { setFormData(prev => ({ ...prev, texture: e.target.value })); setError(null); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="e.g., wood-grain-light"
                 required
@@ -523,7 +523,7 @@ function AddMaterialModal({ onClose, onSuccess }: { onClose: () => void; onSucce
                 min="0.1"
                 max="10"
                 value={formData.price_multiplier}
-                onChange={(e) => setFormData(prev => ({ ...prev, price_multiplier: parseFloat(e.target.value) }))}
+                onChange={(e) => { setFormData(prev => ({ ...prev, price_multiplier: parseFloat(e.target.value) })); setError(null); }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 required
               />
@@ -552,7 +552,7 @@ function AddMaterialModal({ onClose, onSuccess }: { onClose: () => void; onSucce
                     type="text"
                     placeholder="Color name"
                     value={color.name}
-                    onChange={(e) => handleColorChange(index, 'name', e.target.value)}
+                    onChange={(e) => { handleColorChange(index, 'name', e.target.value); setError(null); }}
                     className="flex-1 px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   />
@@ -561,13 +561,13 @@ function AddMaterialModal({ onClose, onSuccess }: { onClose: () => void; onSucce
                     <input
                       type="color"
                       value={color.hex_code}
-                      onChange={(e) => handleColorChange(index, 'hex_code', e.target.value)}
+                      onChange={(e) => { handleColorChange(index, 'hex_code', e.target.value); setError(null); }}
                       className="w-10 h-10 border border-gray-300 rounded cursor-pointer"
                     />
                     <input
                       type="text"
                       value={color.hex_code}
-                      onChange={(e) => handleColorChange(index, 'hex_code', e.target.value)}
+                      onChange={(e) => { handleColorChange(index, 'hex_code', e.target.value); setError(null); }}
                       className="w-20 px-2 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       placeholder="#000000"
                     />
@@ -579,7 +579,7 @@ function AddMaterialModal({ onClose, onSuccess }: { onClose: () => void; onSucce
                     min="0.1"
                     max="5"
                     value={color.price_multiplier}
-                    onChange={(e) => handleColorChange(index, 'price_multiplier', parseFloat(e.target.value))}
+                    onChange={(e) => { handleColorChange(index, 'price_multiplier', parseFloat(e.target.value)); setError(null); }}
                     className="w-20 px-2 py-2 border border-gray-300 rounded text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     placeholder="1.0"
                   />
