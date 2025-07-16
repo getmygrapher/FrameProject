@@ -30,31 +30,38 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [admin, setAdmin] = useState<AdminUser | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const checkAdminStatus = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       const adminUser = await AdminService.getCurrentAdmin();
+      console.log('[AdminProvider] getCurrentAdmin result:', adminUser);
       if (adminUser) {
         setAdmin(adminUser);
         setIsAuthenticated(true);
-        console.log('Admin authenticated:', adminUser.email);
+        console.log('[AdminProvider] Admin authenticated:', adminUser.email);
       } else {
         setAdmin(null);
         setIsAuthenticated(false);
-        console.log('User is not an admin or admin record not found');
+        setError('User is not an admin or admin record not found');
+        console.warn('[AdminProvider] User is not an admin or admin record not found');
       }
     } catch (error) {
-      console.error('Error checking admin status:', error);
+      console.error('[AdminProvider] Error checking admin status:', error);
       setAdmin(null);
       setIsAuthenticated(false);
+      setError('Error checking admin status: ' + (error instanceof Error ? error.message : String(error)));
     } finally {
       setLoading(false);
+      console.log('[AdminProvider] Loading set to false (checkAdminStatus)');
     }
   }, []);
 
   const initializeAuth = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
       // OAuth callback cleanup
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
@@ -64,17 +71,21 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       }
       // Wait for session rehydration
       const session = await waitForSession();
+      console.log('[AdminProvider] Session after waitForSession:', session);
       if (session?.user) {
         await checkAdminStatus();
       } else {
         setAdmin(null);
         setIsAuthenticated(false);
+        setError('No session found after waiting for rehydration');
         setLoading(false);
+        console.warn('[AdminProvider] No session found after waiting for rehydration');
       }
     } catch (error) {
-      console.error('Error initializing auth:', error);
+      console.error('[AdminProvider] Error initializing auth:', error);
       setAdmin(null);
       setIsAuthenticated(false);
+      setError('Error initializing auth: ' + (error instanceof Error ? error.message : String(error)));
       setLoading(false);
     }
   }, [checkAdminStatus]);
@@ -111,13 +122,17 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const handleVisibility = async () => {
       if (document.visibilityState === 'visible') {
         setLoading(true);
+        setError(null);
         const session = await waitForSession();
+        console.log('[AdminProvider] Session after waitForSession (visibility):', session);
         if (session) {
           await checkAdminStatus();
         } else {
           setAdmin(null);
           setIsAuthenticated(false);
+          setError('No session found after tab became visible');
           setLoading(false);
+          console.warn('[AdminProvider] No session found after tab became visible');
         }
       }
     };
@@ -191,6 +206,11 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       checkAdminStatus,
       checkFirstTimeSetup
     }}>
+      {error && (
+        <div style={{ color: 'red', background: '#fee', padding: 8, margin: 8, border: '1px solid #f99' }}>
+          <strong>Admin Auth Error:</strong> {error}
+        </div>
+      )}
       {children}
     </AdminContext.Provider>
   );
