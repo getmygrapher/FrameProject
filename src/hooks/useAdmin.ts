@@ -29,19 +29,11 @@ export function useAdmin() {
       console.log('Admin auth state change:', event, session?.user?.email);
 
       try {
-        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
-          // User just signed in or token refreshed, check if they're an admin
-          await checkAdminStatus();
-        } else if (event === 'SIGNED_OUT') {
-          // User signed out
-          setAdmin(null);
-          setIsAuthenticated(false);
-          setLoading(false);
-        } else if (event === 'USER_UPDATED' && session?.user) {
-          // User updated, recheck admin status
+        if (session?.user) {
+          // User is logged in, check if they're an admin
           await checkAdminStatus();
         } else {
-          // Handle any other auth state that doesn't have a user
+          // No session, user is not authenticated
           setAdmin(null);
           setIsAuthenticated(false);
           setLoading(false);
@@ -56,17 +48,7 @@ export function useAdmin() {
       }
     });
 
-    // On mount, trigger a check in case the session is already available
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (!mounted) return;
-      if (session?.user) {
-        checkAdminStatus();
-      } else {
-        setAdmin(null);
-        setIsAuthenticated(false);
-        setLoading(false);
-      }
-    });
+    // REMOVE: On mount, do not call getSession() directly. Only rely on onAuthStateChange.
 
     return () => {
       mounted = false;
