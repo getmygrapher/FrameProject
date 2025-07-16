@@ -13,6 +13,7 @@ export default function OrdersManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
   useEffect(() => {
     loadOrders();
@@ -70,7 +71,7 @@ export default function OrdersManagement() {
       }
     } catch (error) {
       console.error('Error downloading photo:', error);
-      alert('Error downloading photo. Please try again.');
+      setDownloadError('Error downloading photo. Please try again.');
     }
   };
 
@@ -86,7 +87,7 @@ export default function OrdersManagement() {
       }
     } catch (error) {
       console.error('Error downloading all photos:', error);
-      alert('Error downloading photos. Please try again.');
+      setDownloadError('Error downloading photos. Please try again.');
     }
   };
 
@@ -140,6 +141,18 @@ export default function OrdersManagement() {
 
   return (
     <div className="p-6">
+      {/* Error Banner for Download Errors */}
+      {downloadError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
+          <div className="flex items-start gap-3">
+            <XCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-red-900 mb-1">Download Error</h3>
+              <p className="text-sm text-red-800">{downloadError}</p>
+            </div>
+          </div>
+        </div>
+      )}
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
