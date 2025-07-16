@@ -8,6 +8,18 @@ export function useAdmin() {
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
+  // Helper: Wait for Supabase session to be available (max 1s)
+  const waitForSession = async (maxWaitMs = 1000, intervalMs = 50) => {
+    let waited = 0;
+    while (waited < maxWaitMs) {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) return session;
+      await new Promise(res => setTimeout(res, intervalMs));
+      waited += intervalMs;
+    }
+    return null;
+  };
+
   useEffect(() => {
     let mounted = true;
     let firstAuthEventReceived = false;
@@ -52,12 +64,20 @@ export function useAdmin() {
     });
 
     // Listen for tab visibility changes
-    const handleVisibilityChange = () => {
+    const handleVisibilityChange = async () => {
       console.log('[useAdmin] Tab visibility changed:', document.visibilityState);
       if (document.visibilityState === 'visible') {
-        console.log('[useAdmin] Tab is visible, re-checking admin status and setting loading true');
+        console.log('[useAdmin] Tab is visible, waiting for session and re-checking admin status');
         setLoading(true);
-        checkAdminStatus();
+        const session = await waitForSession();
+        if (session) {
+          await checkAdminStatus();
+        } else {
+          setAdmin(null);
+          setIsAuthenticated(false);
+          setLoading(false);
+          console.warn('[useAdmin] No session found after tab switch');
+        }
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
