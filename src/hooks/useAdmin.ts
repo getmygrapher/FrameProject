@@ -10,55 +10,21 @@ export function useAdmin() {
 
   useEffect(() => {
     let mounted = true;
+    let firstAuthEventReceived = false;
+    let timeoutId: ReturnType<typeof setTimeout>;
 
-    const initializeAuth = async () => {
-      try {
-        // Check for OAuth callback parameters in URL
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const accessToken = hashParams.get('access_token');
-        
-        if (accessToken) {
-          // Clear the hash from URL immediately
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-        
-        // Check current session first
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Error getting session:', sessionError);
-          if (mounted) {
-            setAdmin(null);
-            setIsAuthenticated(false);
-            setLoading(false);
-          }
-          return;
-        }
-        
-        if (session?.user && mounted) {
-          // User is logged in, check if they're an admin
-          await checkAdminStatus();
-        } else if (mounted) {
-          // No session, user is not authenticated
-          setAdmin(null);
-          setIsAuthenticated(false);
-          setLoading(false);
-        }
-      } catch (error) {
-        console.error('Error initializing auth:', error);
-        if (mounted) {
-          setAdmin(null);
-          setIsAuthenticated(false);
-          setLoading(false);
-        }
+    // Fallback timeout to prevent infinite loading
+    timeoutId = setTimeout(() => {
+      if (mounted && !firstAuthEventReceived) {
+        setLoading(false);
       }
-    };
-
-    initializeAuth();
+    }, 3000); // 3 seconds
 
     // Listen for auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (!mounted) return;
+      if (!firstAuthEventReceived) firstAuthEventReceived = true;
+      clearTimeout(timeoutId);
 
       console.log('Admin auth state change:', event, session?.user?.email);
 
@@ -90,8 +56,21 @@ export function useAdmin() {
       }
     });
 
+    // On mount, trigger a check in case the session is already available
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!mounted) return;
+      if (session?.user) {
+        checkAdminStatus();
+      } else {
+        setAdmin(null);
+        setIsAuthenticated(false);
+        setLoading(false);
+      }
+    });
+
     return () => {
       mounted = false;
+      clearTimeout(timeoutId);
       subscription.unsubscribe();
     };
   }, []);
