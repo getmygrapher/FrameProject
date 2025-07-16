@@ -3,7 +3,7 @@ import {
   Camera, Star, Shield, Truck, Award, ArrowRight, Play, Check, Upload, Settings, 
   ShoppingCart, RefreshCw, Lock, Heart, Baby, Users, Gift, Calendar, 
   HelpCircle, Instagram, Facebook, Twitter, Youtube, Mail, Phone, MapPin,
-  CreditCard, Smartphone, Clock, Zap, Search, User, ChevronDown, Menu, X, Home
+  CreditCard, Smartphone, Clock, Zap, Search, User, ChevronDown, Menu, X, Home, AlertCircle
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { useAuth } from '../hooks/useAuth';
@@ -28,6 +28,7 @@ export default function LandingPage() {
   const [showLogin, setShowLogin] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   // Countdown timer effect
   useEffect(() => {
@@ -81,6 +82,7 @@ export default function LandingPage() {
       setShowProfile(false);
     } catch (error) {
       console.error('Logout error:', error);
+      setLogoutError('Logout failed. Please try again.');
     }
   };
 
@@ -308,6 +310,18 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
+      {/* Logout Error Banner */}
+      {logoutError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg max-w-xl mx-auto" role="alert">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-red-900 mb-1">Logout Error</h3>
+              <p className="text-sm text-red-800">{logoutError}</p>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Navigation Header */}
       <header className="bg-white shadow-sm border-b sticky top-0 z-50">
         {/* Top Bar */}
