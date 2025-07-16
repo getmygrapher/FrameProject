@@ -15,10 +15,11 @@ export default function PhotoUpload() {
   const [isDragOver, setIsDragOver] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [resolutionError, setResolutionError] = useState<string | null>(null);
+  const [imageLoadError, setImageLoadError] = useState<string | null>(null);
 
   const processFile = useCallback((file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert('Please select a valid image file.');
+      setImageLoadError('Please select a valid image file.');
       return;
     }
 
@@ -61,7 +62,7 @@ export default function PhotoUpload() {
     };
     
     img.onerror = () => {
-      alert('Error loading image. Please try a different file.');
+      setImageLoadError('Error loading image. Please try a different file.');
       setIsProcessing(false);
       URL.revokeObjectURL(url);
     };
@@ -92,6 +93,7 @@ export default function PhotoUpload() {
       dispatch({ type: 'SET_PHOTO', payload: null });
     }
     setResolutionError(null);
+    setImageLoadError(null);
   };
 
   const getQualityIndicator = (width: number, height: number) => {
@@ -172,6 +174,19 @@ export default function PhotoUpload() {
           Drag and drop your image or click to browse
         </p>
       </div>
+
+      {/* Error Banner for Image Load Errors */}
+      {imageLoadError && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
+          <div className="flex items-start gap-3">
+            <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
+            <div>
+              <h3 className="font-semibold text-red-900 mb-1">Image Load Error</h3>
+              <p className="text-sm text-red-800">{imageLoadError}</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Resolution Requirements Info */}
       <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
