@@ -411,7 +411,7 @@ function AddMaterialModal({ onClose, onSuccess }: { onClose: () => void; onSucce
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           {error && (
-            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3">
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-3" role="alert">
               <AlertCircle size={20} className="text-red-600 flex-shrink-0" />
               <p className="text-red-700 text-sm">{error}</p>
             </div>

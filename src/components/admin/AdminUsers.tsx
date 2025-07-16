@@ -124,7 +124,7 @@ export default function AdminUsers() {
       </div>
 
       {error && (
-        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg" role="alert">
           <p className="text-red-700">{error}</p>
         </div>
       )}
@@ -253,7 +253,7 @@ export default function AdminUsers() {
             </div>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg" role="alert">
                 <p className="text-red-700 text-sm">{error}</p>
               </div>
             )}

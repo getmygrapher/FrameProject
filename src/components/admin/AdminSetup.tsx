@@ -142,7 +142,7 @@ export default function AdminSetup({ onBackToLogin, onSetupComplete }: AdminSetu
           </div>
 
           {error && (
-            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3">
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg flex items-start gap-3" role="alert">
               <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
               <div>
                 <p className="text-red-700 text-sm font-medium">Error</p>
