@@ -48,12 +48,20 @@ export function useAdmin() {
       }
     });
 
-    // REMOVE: On mount, do not call getSession() directly. Only rely on onAuthStateChange.
+    // NEW: Listen for tab visibility changes
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        setLoading(true);
+        checkAdminStatus();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       mounted = false;
       clearTimeout(timeoutId);
       subscription.unsubscribe();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
