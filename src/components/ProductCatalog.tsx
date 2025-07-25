@@ -1,327 +1,236 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Heart, Star, Grid, List, Filter, Search, ShoppingCart } from 'lucide-react';
-import { useApp } from '../context/AppContext';
+import React, { useState, useEffect } from "react";
+import {
+  ArrowLeft,
+  Heart,
+  Star,
+  Grid,
+  List,
+  Filter,
+  Search,
+  ShoppingCart,
+  Loader2,
+  SlidersHorizontal,
+} from "lucide-react";
+import { useApp } from "../context/AppContext";
+import { useAuth } from "../context/AuthContext";
+import {
+  ProductService,
+  type ProductFilters,
+  type ProductSortOptions,
+} from "../services/productService";
+import { CategoryService } from "../services/categoryService";
+import type { Product, Category } from "../lib/supabase";
 
-interface FrameTemplate {
-  id: string;
-  title: string;
-  category: string;
-  rating: number;
-  reviews: number;
-  originalPrice: number;
-  salePrice?: number;
-  discount?: number;
-  image: string;
-  isPopular?: boolean;
-  isFavorite?: boolean;
+interface WishlistState {
+  [productId: string]: boolean;
 }
-
-const frameTemplates: FrameTemplate[] = [
-  // Anniversary Templates
-  {
-    id: 'ann-1',
-    title: 'Anniversary Frame | Perfect Couple Gifts for Anniversary',
-    category: 'Anniversary',
-    rating: 4.4,
-    reviews: 156,
-    originalPrice: 999.00,
-    salePrice: 699.00,
-    discount: 23,
-    image: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg',
-    isPopular: true
-  },
-  {
-    id: 'ann-2',
-    title: 'Best Moments Personalized Photo Frame | Customized Gift Photo Frame',
-    category: 'Anniversary',
-    rating: 4.4,
-    reviews: 89,
-    originalPrice: 999.00,
-    salePrice: 699.00,
-    discount: 23,
-    image: 'https://images.pexels.com/photos/1128318/pexels-photo-1128318.jpeg'
-  },
-  {
-    id: 'ann-3',
-    title: 'Black & White Personalized Photo Frames | Customized Gift Photo Frame',
-    category: 'Anniversary',
-    rating: 4.5,
-    reviews: 234,
-    originalPrice: 999.00,
-    salePrice: 699.00,
-    discount: 23,
-    image: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg'
-  },
-  {
-    id: 'ann-4',
-    title: 'Blurred Personalized Photo Frames - Customised Gift Photo Frame',
-    category: 'Anniversary',
-    rating: 4.4,
-    reviews: 67,
-    originalPrice: 999.00,
-    salePrice: 699.00,
-    discount: 23,
-    image: 'https://images.pexels.com/photos/1128318/pexels-photo-1128318.jpeg'
-  },
-  {
-    id: 'ann-5',
-    title: 'Couples Personalized Photo Frames - Customised Gift Photo Frame',
-    category: 'Anniversary',
-    rating: 4.5,
-    reviews: 145,
-    originalPrice: 999.00,
-    salePrice: 699.00,
-    discount: 23,
-    image: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg'
-  },
-  {
-    id: 'ann-6',
-    title: 'Special Moments Collage Frame - Anniversary Edition',
-    category: 'Anniversary',
-    rating: 4.6,
-    reviews: 98,
-    originalPrice: 999.00,
-    salePrice: 699.00,
-    discount: 23,
-    image: 'https://images.pexels.com/photos/1128318/pexels-photo-1128318.jpeg'
-  },
-
-  // Wedding Templates
-  {
-    id: 'wed-1',
-    title: 'Wedding Memories Collage Frame | Perfect Wedding Gift',
-    category: 'Wedding',
-    rating: 4.8,
-    reviews: 234,
-    originalPrice: 1299.00,
-    salePrice: 899.00,
-    discount: 31,
-    image: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg',
-    isPopular: true
-  },
-  {
-    id: 'wed-2',
-    title: 'Elegant Wedding Photo Frame | Customized Couple Frame',
-    category: 'Wedding',
-    rating: 4.7,
-    reviews: 189,
-    originalPrice: 1199.00,
-    salePrice: 799.00,
-    discount: 33,
-    image: 'https://images.pexels.com/photos/1128318/pexels-photo-1128318.jpeg'
-  },
-  {
-    id: 'wed-3',
-    title: 'Classic Wedding Frame Set | Premium Quality',
-    category: 'Wedding',
-    rating: 4.9,
-    reviews: 156,
-    originalPrice: 1499.00,
-    salePrice: 999.00,
-    discount: 33,
-    image: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg'
-  },
-
-  // Birthday Templates
-  {
-    id: 'birth-1',
-    title: 'Cherished Moments Birthday Gift - Personalized Photo Collage',
-    category: 'Birthday',
-    rating: 4.7,
-    reviews: 123,
-    originalPrice: 999.00,
-    salePrice: 699.00,
-    discount: 23,
-    image: 'https://images.pexels.com/photos/1128318/pexels-photo-1128318.jpeg'
-  },
-  {
-    id: 'birth-2',
-    title: 'Happy Birthday Memory Frame | Custom Photo Gift',
-    category: 'Birthday',
-    rating: 4.6,
-    reviews: 87,
-    originalPrice: 899.00,
-    salePrice: 599.00,
-    discount: 33,
-    image: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg'
-  },
-
-  // Couple Gifts
-  {
-    id: 'couple-1',
-    title: 'Romantic Couple Photo Frame | Love Story Collection',
-    category: 'Couple Gifts',
-    rating: 4.5,
-    reviews: 167,
-    originalPrice: 1099.00,
-    salePrice: 749.00,
-    discount: 32,
-    image: 'https://images.pexels.com/photos/1128318/pexels-photo-1128318.jpeg'
-  },
-  {
-    id: 'couple-2',
-    title: 'Together Forever Frame Set | Couple Anniversary Gift',
-    category: 'Couple Gifts',
-    rating: 4.8,
-    reviews: 203,
-    originalPrice: 1299.00,
-    salePrice: 899.00,
-    discount: 31,
-    image: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg'
-  },
-
-  // New Born
-  {
-    id: 'newborn-1',
-    title: 'Baby\'s First Moments Frame | New Born Gift',
-    category: 'New Born',
-    rating: 4.9,
-    reviews: 145,
-    originalPrice: 799.00,
-    salePrice: 549.00,
-    discount: 31,
-    image: 'https://images.pexels.com/photos/1128318/pexels-photo-1128318.jpeg'
-  },
-  {
-    id: 'newborn-2',
-    title: 'Welcome Baby Photo Frame | Personalized Nursery Decor',
-    category: 'New Born',
-    rating: 4.7,
-    reviews: 98,
-    originalPrice: 899.00,
-    salePrice: 599.00,
-    discount: 33,
-    image: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg'
-  },
-
-  // Family Gifts
-  {
-    id: 'family-1',
-    title: 'Family Tree Photo Frame | Multi-Photo Display',
-    category: 'Family Gifts',
-    rating: 4.6,
-    reviews: 234,
-    originalPrice: 1199.00,
-    salePrice: 799.00,
-    discount: 33,
-    image: 'https://images.pexels.com/photos/1128318/pexels-photo-1128318.jpeg'
-  },
-  {
-    id: 'family-2',
-    title: 'Family Memories Collage | Custom Family Frame',
-    category: 'Family Gifts',
-    rating: 4.8,
-    reviews: 167,
-    originalPrice: 1399.00,
-    salePrice: 949.00,
-    discount: 32,
-    image: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg'
-  },
-
-  // Friendship
-  {
-    id: 'friend-1',
-    title: 'Best Friends Forever Frame | Friendship Gift',
-    category: 'Friendship',
-    rating: 4.5,
-    reviews: 89,
-    originalPrice: 899.00,
-    salePrice: 599.00,
-    discount: 33,
-    image: 'https://images.pexels.com/photos/1128318/pexels-photo-1128318.jpeg'
-  },
-  {
-    id: 'friend-2',
-    title: 'Squad Goals Photo Frame | Group Photo Display',
-    category: 'Friendship',
-    rating: 4.7,
-    reviews: 123,
-    originalPrice: 999.00,
-    salePrice: 699.00,
-    discount: 30,
-    image: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg'
-  },
-
-  // Collage
-  {
-    id: 'collage-1',
-    title: 'Multi-Photo Collage Frame | 6 Photos Display',
-    category: 'Collage',
-    rating: 4.8,
-    reviews: 178,
-    originalPrice: 1299.00,
-    salePrice: 899.00,
-    discount: 31,
-    image: 'https://images.pexels.com/photos/1128318/pexels-photo-1128318.jpeg'
-  },
-  {
-    id: 'collage-2',
-    title: 'Creative Collage Frame | Custom Layout Design',
-    category: 'Collage',
-    rating: 4.6,
-    reviews: 145,
-    originalPrice: 1199.00,
-    salePrice: 799.00,
-    discount: 33,
-    image: 'https://images.pexels.com/photos/1762851/pexels-photo-1762851.jpeg'
-  }
-];
 
 interface ProductCatalogProps {
   category?: string;
 }
 
-export default function ProductCatalog({ category = 'All' }: ProductCatalogProps) {
+export default function ProductCatalog({
+  category = "All",
+}: ProductCatalogProps) {
   const { dispatch } = useApp();
+  const { user, canViewB2BPricing } = useAuth();
+
+  // State management
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Filter and display state
   const [selectedCategory, setSelectedCategory] = useState(category);
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
-  const [itemsPerPage, setItemsPerPage] = useState(9);
-  const [sortBy, setSortBy] = useState('default');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [favorites, setFavorites] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [itemsPerPage, setItemsPerPage] = useState(12);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalProducts, setTotalProducts] = useState(0);
 
-  const categories = ['All', 'Anniversary', 'Wedding', 'Birthday', 'Couple Gifts', 'New Born', 'Collage', 'Family Gifts', 'Friendship'];
-
-  const filteredProducts = frameTemplates.filter(product => {
-    const matchesCategory = selectedCategory === 'All' || product.category === selectedCategory;
-    const matchesSearch = product.title.toLowerCase().includes(searchQuery.toLowerCase());
-    return matchesCategory && matchesSearch;
+  // Search and filters
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [filters, setFilters] = useState<ProductFilters>({});
+  const [sortBy, setSortBy] = useState<ProductSortOptions>({
+    field: "created_at",
+    direction: "desc",
   });
 
-  const sortedProducts = [...filteredProducts].sort((a, b) => {
-    switch (sortBy) {
-      case 'price-low':
-        return (a.salePrice || a.originalPrice) - (b.salePrice || b.originalPrice);
-      case 'price-high':
-        return (b.salePrice || b.originalPrice) - (a.salePrice || a.originalPrice);
-      case 'rating':
-        return b.rating - a.rating;
-      case 'popular':
-        return (b.isPopular ? 1 : 0) - (a.isPopular ? 1 : 0);
-      default:
-        return 0;
+  // Wishlist state
+  const [wishlist, setWishlist] = useState<WishlistState>({});
+  const [wishlistLoading, setWishlistLoading] = useState<Set<string>>(
+    new Set(),
+  );
+
+  // Load initial data
+  useEffect(() => {
+    loadInitialData();
+  }, []);
+
+  // Load products when filters change
+  useEffect(() => {
+    loadProducts();
+  }, [
+    selectedCategory,
+    searchQuery,
+    filters,
+    sortBy,
+    currentPage,
+    itemsPerPage,
+  ]);
+
+  // Load user's wishlist
+  useEffect(() => {
+    if (user) {
+      loadWishlist();
     }
-  });
+  }, [user]);
 
-  const displayedProducts = sortedProducts.slice(0, itemsPerPage);
+  const loadInitialData = async () => {
+    try {
+      const categoriesData = await CategoryService.getCategories();
+      setCategories([
+        { id: "all", name: "All Categories", slug: "all" } as Category,
+        ...categoriesData,
+      ]);
+    } catch (err) {
+      console.error("Error loading initial data:", err);
+      setError("Failed to load categories");
+    }
+  };
+
+  const loadProducts = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+
+      const productFilters: ProductFilters = {
+        ...filters,
+        search: searchQuery || undefined,
+        category: selectedCategory !== "All" ? selectedCategory : undefined,
+      };
+
+      const userRole = user?.role || "b2c_customer";
+      const result = await ProductService.getProducts({
+        filters: productFilters,
+        sort: sortBy,
+        page: currentPage,
+        limit: itemsPerPage,
+        userRole,
+      });
+
+      setProducts(result.products);
+      setTotalPages(result.totalPages);
+      setTotalProducts(result.total);
+    } catch (err) {
+      console.error("Error loading products:", err);
+      setError("Failed to load products");
+      setProducts([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadWishlist = async () => {
+    if (!user) return;
+
+    try {
+      const wishlistProducts = await ProductService.getUserWishlist(user.id);
+      const wishlistState: WishlistState = {};
+      wishlistProducts.forEach((product) => {
+        wishlistState[product.id] = true;
+      });
+      setWishlist(wishlistState);
+    } catch (err) {
+      console.error("Error loading wishlist:", err);
+    }
+  };
 
   const goBack = () => {
-    dispatch({ type: 'SET_STEP', payload: 'home' });
+    dispatch({ type: "SET_STEP", payload: "home" });
   };
 
-  const startCustomizing = (template: FrameTemplate) => {
-    // In a real app, you might set the template as a starting point
-    dispatch({ type: 'SET_STEP', payload: 'upload' });
+  const startCustomizing = (product: Product) => {
+    dispatch({ type: "SET_SELECTED_PRODUCT", payload: product });
+    dispatch({ type: "SET_STEP", payload: "upload" });
   };
 
-  const toggleFavorite = (productId: string) => {
-    const newFavorites = new Set(favorites);
-    if (newFavorites.has(productId)) {
-      newFavorites.delete(productId);
-    } else {
-      newFavorites.add(productId);
+  const viewProduct = (product: Product) => {
+    dispatch({ type: "SET_SELECTED_PRODUCT", payload: product });
+    dispatch({ type: "SET_STEP", payload: "product" });
+  };
+
+  const toggleWishlist = async (productId: string) => {
+    if (!user) {
+      // Redirect to login or show login modal
+      return;
     }
-    setFavorites(newFavorites);
+
+    if (wishlistLoading.has(productId)) return;
+
+    try {
+      setWishlistLoading((prev) => new Set([...prev, productId]));
+
+      const isInWishlist = wishlist[productId];
+
+      if (isInWishlist) {
+        await ProductService.removeFromWishlist(productId, user.id);
+        setWishlist((prev) => ({ ...prev, [productId]: false }));
+      } else {
+        await ProductService.addToWishlist(productId, user.id);
+        setWishlist((prev) => ({ ...prev, [productId]: true }));
+      }
+    } catch (err) {
+      console.error("Error toggling wishlist:", err);
+    } finally {
+      setWishlistLoading((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(productId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleSearch = () => {
+    setCurrentPage(1);
+    loadProducts();
+  };
+
+  const handleSortChange = (value: string) => {
+    let newSort: ProductSortOptions;
+    switch (value) {
+      case "price-low":
+        newSort = { field: "b2c_price", direction: "asc" };
+        break;
+      case "price-high":
+        newSort = { field: "b2c_price", direction: "desc" };
+        break;
+      case "name":
+        newSort = { field: "name", direction: "asc" };
+        break;
+      case "popular":
+        newSort = { field: "popularity", direction: "desc" };
+        break;
+      default:
+        newSort = { field: "created_at", direction: "desc" };
+    }
+    setSortBy(newSort);
+    setCurrentPage(1);
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat("en-IN", {
+      style: "currency",
+      currency: "INR",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const calculateDiscount = (originalPrice: number, salePrice: number) => {
+    return Math.round(((originalPrice - salePrice) / originalPrice) * 100);
   };
 
   return (
@@ -341,10 +250,12 @@ export default function ProductCatalog({ category = 'All' }: ProductCatalogProps
                 <span>Home</span>
                 <span className="mx-2">/</span>
                 <span>Photo Frames</span>
-                {selectedCategory !== 'All' && (
+                {selectedCategory !== "All" && (
                   <>
                     <span className="mx-2">/</span>
-                    <span className="text-gray-900 font-medium">{selectedCategory}</span>
+                    <span className="text-gray-900 font-medium">
+                      {selectedCategory}
+                    </span>
                   </>
                 )}
               </nav>
@@ -359,15 +270,19 @@ export default function ProductCatalog({ category = 'All' }: ProductCatalogProps
           <div className="flex flex-wrap gap-2">
             {categories.map((cat) => (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                key={cat.id}
+                onClick={() => {
+                  setSelectedCategory(cat.slug === "all" ? "All" : cat.slug);
+                  setCurrentPage(1);
+                }}
                 className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  selectedCategory === cat
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200'
+                  (selectedCategory === "All" && cat.slug === "all") ||
+                  selectedCategory === cat.slug
+                    ? "bg-blue-600 text-white"
+                    : "bg-white text-gray-700 hover:bg-gray-50 border border-gray-200"
                 }`}
               >
-                {cat}
+                {cat.name}
               </button>
             ))}
           </div>
@@ -378,166 +293,333 @@ export default function ProductCatalog({ category = 'All' }: ProductCatalogProps
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <span className="text-sm text-gray-600">
-                Show: 
+                Showing {products.length} of {totalProducts} products
+              </span>
+
+              <span className="text-sm text-gray-600">
+                Show:
                 <select
                   value={itemsPerPage}
-                  onChange={(e) => setItemsPerPage(Number(e.target.value))}
+                  onChange={(e) => {
+                    setItemsPerPage(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
                   className="ml-2 border border-gray-300 rounded px-2 py-1 text-sm"
                 >
-                  <option value={9}>9</option>
                   <option value={12}>12</option>
-                  <option value={18}>18</option>
                   <option value={24}>24</option>
+                  <option value={36}>36</option>
+                  <option value={48}>48</option>
                 </select>
               </span>
-              
+
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setViewMode('grid')}
-                  className={`p-2 rounded ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'}`}
+                  onClick={() => setViewMode("grid")}
+                  className={`p-2 rounded ${viewMode === "grid" ? "bg-blue-100 text-blue-600" : "text-gray-400"}`}
                 >
                   <Grid size={16} />
                 </button>
                 <button
-                  onClick={() => setViewMode('list')}
-                  className={`p-2 rounded ${viewMode === 'list' ? 'bg-blue-100 text-blue-600' : 'text-gray-400'}`}
+                  onClick={() => setViewMode("list")}
+                  className={`p-2 rounded ${viewMode === "list" ? "bg-blue-100 text-blue-600" : "text-gray-400"}`}
                 >
                   <List size={16} />
+                </button>
+                <button
+                  onClick={() => setShowFilters(!showFilters)}
+                  className={`p-2 rounded ${showFilters ? "bg-blue-100 text-blue-600" : "text-gray-400"}`}
+                >
+                  <SlidersHorizontal size={16} />
                 </button>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search
+                  size={16}
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                />
                 <input
                   type="text"
                   placeholder="Search frames..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === "Enter" && handleSearch()}
                   className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               </div>
-              
+
               <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
+                value={`${sortBy.field}-${sortBy.direction}`}
+                onChange={(e) => handleSortChange(e.target.value)}
                 className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               >
-                <option value="default">Default sorting</option>
+                <option value="created_at-desc">Newest first</option>
                 <option value="popular">Sort by popularity</option>
-                <option value="rating">Sort by rating</option>
-                <option value="price-low">Sort by price: low to high</option>
-                <option value="price-high">Sort by price: high to low</option>
+                <option value="name-asc">Name A-Z</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
               </select>
             </div>
           </div>
         </div>
 
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 size={48} className="animate-spin text-blue-600" />
+            <span className="ml-3 text-lg text-gray-600">
+              Loading products...
+            </span>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6">
+            <p className="text-red-800">{error}</p>
+            <button
+              onClick={loadProducts}
+              className="mt-2 text-red-600 hover:text-red-800 font-medium"
+            >
+              Try again
+            </button>
+          </div>
+        )}
+
         {/* Products Grid */}
-        <div className={`grid gap-6 ${
-          viewMode === 'grid' 
-            ? 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3' 
-            : 'grid-cols-1'
-        }`}>
-          {displayedProducts.map((product) => (
-            <div key={product.id} className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-lg transition-shadow duration-300 group">
-              <div className="relative">
-                <img
-                  src={product.image}
-                  alt={product.title}
-                  className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300"
-                />
-                
-                {/* Discount Badge */}
-                {product.discount && (
-                  <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                    -{product.discount}%
-                  </div>
-                )}
-                
-                {/* Popular Badge */}
-                {product.isPopular && (
-                  <div className="absolute top-3 right-3 bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                    Popular
-                  </div>
-                )}
-                
-                {/* Favorite Button */}
-                <button
-                  onClick={() => toggleFavorite(product.id)}
-                  className="absolute bottom-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+        {!loading && !error && (
+          <div
+            className={`grid gap-6 ${
+              viewMode === "grid"
+                ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                : "grid-cols-1"
+            }`}
+          >
+            {products.map((product) => {
+              const primaryImage = product.primaryImage || product.images?.[0];
+              const hasDiscount = product.originalPrice > product.price;
+              const discountPercent = hasDiscount
+                ? calculateDiscount(product.originalPrice, product.price)
+                : 0;
+              const isInWishlist = wishlist[product.id];
+              const isWishlistLoading = wishlistLoading.has(product.id);
+
+              return (
+                <div
+                  key={product.id}
+                  className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-lg transition-shadow duration-300 group"
                 >
-                  <Heart 
-                    size={16} 
-                    className={`${favorites.has(product.id) ? 'text-red-500 fill-current' : 'text-gray-600'}`} 
-                  />
-                </button>
-              </div>
-              
-              <div className="p-4">
-                <h3 className="font-medium text-gray-900 mb-2 line-clamp-2">{product.title}</h3>
-                
-                <div className="flex items-center mb-2">
-                  <div className="flex items-center">
-                    {[...Array(5)].map((_, i) => (
-                      <Star 
-                        key={i} 
-                        size={14} 
-                        className={`${i < Math.floor(product.rating) ? 'text-yellow-400 fill-current' : 'text-gray-300'}`} 
-                      />
-                    ))}
-                  </div>
-                  <span className="text-sm text-gray-600 ml-2">
-                    {product.rating} ({product.reviews})
-                  </span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    {product.salePrice ? (
-                      <>
-                        <span className="text-lg font-bold text-red-600">₹{product.salePrice.toFixed(2)}</span>
-                        <span className="text-sm text-gray-500 line-through">₹{product.originalPrice.toFixed(2)}</span>
-                      </>
-                    ) : (
-                      <span className="text-lg font-bold text-gray-900">₹{product.originalPrice.toFixed(2)}</span>
+                  <div className="relative">
+                    <img
+                      src={
+                        primaryImage?.image_url ||
+                        product.frame_preview_url ||
+                        "https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&q=80"
+                      }
+                      alt={product.name}
+                      className="w-full h-64 object-cover group-hover:scale-105 transition-transform duration-300 cursor-pointer"
+                      onClick={() => viewProduct(product)}
+                    />
+
+                    {/* Discount Badge */}
+                    {hasDiscount && (
+                      <div className="absolute top-3 left-3 bg-red-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                        -{discountPercent}%
+                      </div>
+                    )}
+
+                    {/* Popular/Featured Badges */}
+                    <div className="absolute top-3 right-3 flex flex-col gap-1">
+                      {product.is_popular && (
+                        <div className="bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                          Popular
+                        </div>
+                      )}
+                      {product.is_featured && (
+                        <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                          Featured
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Wishlist Button */}
+                    {user && (
+                      <button
+                        onClick={() => toggleWishlist(product.id)}
+                        disabled={isWishlistLoading}
+                        className="absolute bottom-3 right-3 w-8 h-8 bg-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md hover:shadow-lg"
+                      >
+                        {isWishlistLoading ? (
+                          <Loader2
+                            size={14}
+                            className="animate-spin text-gray-600"
+                          />
+                        ) : (
+                          <Heart
+                            size={16}
+                            className={`${isInWishlist ? "text-red-500 fill-current" : "text-gray-600"}`}
+                          />
+                        )}
+                      </button>
                     )}
                   </div>
-                  
-                  <button 
-                    onClick={() => startCustomizing(product)}
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center gap-2"
-                  >
-                    <ShoppingCart size={16} />
-                    Customize
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
 
-        {/* Load More / View All */}
-        {filteredProducts.length > displayedProducts.length && (
-          <div className="text-center mt-8">
+                  <div className="p-4">
+                    <h3
+                      className="font-medium text-gray-900 mb-2 line-clamp-2 cursor-pointer hover:text-blue-600 transition-colors"
+                      onClick={() => viewProduct(product)}
+                    >
+                      {product.name}
+                    </h3>
+
+                    {/* Category and Material */}
+                    <div className="flex items-center gap-2 mb-2 text-xs text-gray-500">
+                      {product.category && (
+                        <span className="bg-gray-100 px-2 py-1 rounded">
+                          {product.category.name}
+                        </span>
+                      )}
+                      {product.material_type && (
+                        <span className="bg-gray-100 px-2 py-1 rounded capitalize">
+                          {product.material_type}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Rating */}
+                    {product.averageRating > 0 && (
+                      <div className="flex items-center mb-2">
+                        <div className="flex items-center">
+                          {[...Array(5)].map((_, i) => (
+                            <Star
+                              key={i}
+                              size={14}
+                              className={`${i < Math.floor(product.averageRating) ? "text-yellow-400 fill-current" : "text-gray-300"}`}
+                            />
+                          ))}
+                        </div>
+                        <span className="text-sm text-gray-600 ml-2">
+                          {product.averageRating.toFixed(1)} (
+                          {product.totalReviews})
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Pricing */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-lg font-bold text-gray-900">
+                          {formatPrice(product.price)}
+                        </span>
+                        {hasDiscount && (
+                          <span className="text-sm text-gray-500 line-through">
+                            {formatPrice(product.originalPrice)}
+                          </span>
+                        )}
+                        {canViewB2BPricing() && product.b2bPrice && (
+                          <span className="text-xs text-blue-600 font-medium">
+                            B2B: {formatPrice(product.b2bPrice)}
+                          </span>
+                        )}
+                      </div>
+
+                      <button
+                        onClick={() => startCustomizing(product)}
+                        className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-700 transition-colors flex items-center gap-2"
+                      >
+                        <ShoppingCart size={16} />
+                        Customize
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {!loading && !error && totalPages > 1 && (
+          <div className="flex items-center justify-center gap-4 mt-8">
             <button
-              onClick={() => setItemsPerPage(prev => prev + 9)}
-              className="bg-blue-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+              disabled={currentPage === 1}
+              className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
             >
-              View More Products
+              Previous
+            </button>
+
+            <div className="flex items-center gap-2">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const page = i + 1;
+                return (
+                  <button
+                    key={page}
+                    onClick={() => setCurrentPage(page)}
+                    className={`px-3 py-2 rounded-lg ${
+                      currentPage === page
+                        ? "bg-blue-600 text-white"
+                        : "border border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {page}
+                  </button>
+                );
+              })}
+              {totalPages > 5 && (
+                <>
+                  <span className="px-2">...</span>
+                  <button
+                    onClick={() => setCurrentPage(totalPages)}
+                    className={`px-3 py-2 rounded-lg ${
+                      currentPage === totalPages
+                        ? "bg-blue-600 text-white"
+                        : "border border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    {totalPages}
+                  </button>
+                </>
+              )}
+            </div>
+
+            <button
+              onClick={() =>
+                setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+              }
+              disabled={currentPage === totalPages}
+              className="px-4 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+            >
+              Next
             </button>
           </div>
         )}
 
         {/* No Results */}
-        {filteredProducts.length === 0 && (
+        {!loading && !error && products.length === 0 && (
           <div className="text-center py-12">
             <div className="text-gray-400 mb-4">
               <Filter size={48} className="mx-auto" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
-            <p className="text-gray-600">Try adjusting your search or filter criteria</p>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              No products found
+            </h3>
+            <p className="text-gray-600">
+              Try adjusting your search or filter criteria
+            </p>
+            <button
+              onClick={() => {
+                setSearchQuery("");
+                setFilters({});
+                setSelectedCategory("All");
+              }}
+              className="mt-4 text-blue-600 hover:text-blue-700 font-medium"
+            >
+              Clear all filters
+            </button>
           </div>
         )}
       </div>

@@ -1,32 +1,61 @@
-import React, { useState } from 'react';
-import { User, Mail, Calendar, LogOut, Edit, Save, X, Shield } from 'lucide-react';
-import { UserAuthService } from '../../services/userAuthService';
+import React, { useState } from "react";
+import {
+  User,
+  Mail,
+  Phone,
+  Calendar,
+  LogOut,
+  Edit,
+  Save,
+  X,
+  Shield,
+  Building,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+} from "lucide-react";
+import { useAuth } from "../../context/AuthContext";
 
 interface UserProfileProps {
-  user: any;
   onClose: () => void;
-  onLogout: () => void;
 }
 
-export default function UserProfile({ user, onClose, onLogout }: UserProfileProps) {
+export default function UserProfile({ onClose }: UserProfileProps) {
+  const {
+    user,
+    b2bPartner,
+    loading,
+    error: authError,
+    updateProfile,
+    logout,
+    clearError,
+    isB2BPartner,
+    canViewB2BPricing,
+  } = useAuth();
+
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [fullName, setFullName] = useState(user?.user_metadata?.full_name || '');
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
+  const [fullName, setFullName] = useState(user?.full_name || "");
+  const [phone, setPhone] = useState(user?.phone || "");
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
   const handleSaveProfile = async () => {
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
     setIsLoading(true);
+    clearError();
 
     try {
-      await UserAuthService.updateProfile({ full_name: fullName });
-      setSuccess('Profile updated successfully!');
+      await updateProfile({
+        full_name: fullName.trim() || undefined,
+        phone: phone.trim() || undefined,
+      });
+      setSuccess("Profile updated successfully!");
       setIsEditing(false);
-      setTimeout(() => setSuccess(''), 3000);
+      setTimeout(() => setSuccess(""), 3000);
     } catch (err: any) {
-      setError(err.message || 'Failed to update profile');
+      setError(err.message || "Failed to update profile");
     } finally {
       setIsLoading(false);
     }
@@ -34,12 +63,76 @@ export default function UserProfile({ user, onClose, onLogout }: UserProfileProp
 
   const handleLogout = async () => {
     try {
-      await UserAuthService.logout();
-      onLogout();
+      await logout();
+      onClose();
     } catch (error) {
-      console.error('Logout error:', error);
+      console.error("Logout error:", error);
     }
   };
+
+  const getRoleDisplayName = (role: string) => {
+    switch (role) {
+      case "b2c_customer":
+        return "Customer";
+      case "b2b_partner":
+        return "Business Partner";
+      case "admin":
+        return "Administrator";
+      case "super_admin":
+        return "Super Administrator";
+      default:
+        return "User";
+    }
+  };
+
+  const getStatusBadge = () => {
+    if (!isB2BPartner() || !b2bPartner) return null;
+
+    const statusConfig = {
+      pending: {
+        icon: Clock,
+        color: "text-yellow-600 bg-yellow-50 border-yellow-200",
+        text: "Pending Approval",
+      },
+      approved: {
+        icon: CheckCircle,
+        color: "text-green-600 bg-green-50 border-green-200",
+        text: "Approved",
+      },
+      suspended: {
+        icon: AlertTriangle,
+        color: "text-red-600 bg-red-50 border-red-200",
+        text: "Suspended",
+      },
+      rejected: {
+        icon: X,
+        color: "text-red-600 bg-red-50 border-red-200",
+        text: "Rejected",
+      },
+    };
+
+    const config = statusConfig[b2bPartner.status] || statusConfig.pending;
+    const IconComponent = config.icon;
+
+    return (
+      <div
+        className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium border ${config.color}`}
+      >
+        <IconComponent size={12} />
+        {config.text}
+      </div>
+    );
+  };
+
+  if (!user) {
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center">
+          <p className="text-gray-600">Loading profile...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
@@ -54,9 +147,9 @@ export default function UserProfile({ user, onClose, onLogout }: UserProfileProp
           </button>
         </div>
 
-        {error && (
+        {(error || authError) && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-            <p className="text-red-700 text-sm">{error}</p>
+            <p className="text-red-700 text-sm">{error || authError}</p>
           </div>
         )}
 
@@ -70,9 +163,9 @@ export default function UserProfile({ user, onClose, onLogout }: UserProfileProp
           {/* Profile Picture */}
           <div className="text-center">
             <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              {user?.user_metadata?.avatar_url ? (
+              {user?.avatar_url ? (
                 <img
-                  src={user.user_metadata.avatar_url}
+                  src={user.avatar_url}
                   alt="Profile"
                   className="w-20 h-20 rounded-full object-cover"
                 />
@@ -80,6 +173,15 @@ export default function UserProfile({ user, onClose, onLogout }: UserProfileProp
                 <User size={32} className="text-blue-600" />
               )}
             </div>
+            <div className="flex items-center justify-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {user.full_name || "User"}
+              </h3>
+              {getStatusBadge()}
+            </div>
+            <p className="text-sm text-gray-500 mt-1">
+              {getRoleDisplayName(user.role)}
+            </p>
           </div>
 
           {/* User Information */}
@@ -99,7 +201,7 @@ export default function UserProfile({ user, onClose, onLogout }: UserProfileProp
               ) : (
                 <div className="flex items-center justify-between">
                   <span className="text-gray-900">
-                    {user?.user_metadata?.full_name || 'Not set'}
+                    {user.full_name || "Not set"}
                   </span>
                   <button
                     onClick={() => setIsEditing(true)}
@@ -113,14 +215,63 @@ export default function UserProfile({ user, onClose, onLogout }: UserProfileProp
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Phone Number
+              </label>
+              {isEditing ? (
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter your phone number"
+                />
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Phone size={16} className="text-gray-400" />
+                  <span className="text-gray-900">
+                    {user.phone || "Not set"}
+                  </span>
+                  {user.phone_verified && (
+                    <Shield
+                      size={16}
+                      className="text-green-600"
+                      title="Verified"
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email Address
               </label>
               <div className="flex items-center gap-2">
                 <Mail size={16} className="text-gray-400" />
-                <span className="text-gray-900">{user?.email}</span>
-                {user?.email_confirmed_at && (
-                  <Shield size={16} className="text-green-600" title="Verified" />
+                <span className="text-gray-900">{user.email}</span>
+                {user.email_verified && (
+                  <Shield
+                    size={16}
+                    className="text-green-600"
+                    title="Verified"
+                  />
                 )}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Account Status
+              </label>
+              <div className="flex items-center gap-2">
+                <Shield size={16} className="text-gray-400" />
+                <span
+                  className={`text-sm font-medium ${
+                    user.is_active ? "text-green-600" : "text-red-600"
+                  }`}
+                >
+                  {user.is_active ? "Active" : "Inactive"}
+                </span>
               </div>
             </div>
 
@@ -131,22 +282,74 @@ export default function UserProfile({ user, onClose, onLogout }: UserProfileProp
               <div className="flex items-center gap-2">
                 <Calendar size={16} className="text-gray-400" />
                 <span className="text-gray-900">
-                  {new Date(user?.created_at).toLocaleDateString()}
+                  {new Date(user.created_at).toLocaleDateString()}
                 </span>
               </div>
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Authentication Provider
-              </label>
-              <div className="flex items-center gap-2">
-                <Shield size={16} className="text-gray-400" />
-                <span className="text-gray-900 capitalize">
-                  {user?.app_metadata?.provider || 'Email'}
-                </span>
+            {user.last_login && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Last Login
+                </label>
+                <div className="flex items-center gap-2">
+                  <Clock size={16} className="text-gray-400" />
+                  <span className="text-gray-900">
+                    {new Date(user.last_login).toLocaleString()}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* B2B Partner Information */}
+            {isB2BPartner() && b2bPartner && (
+              <div className="pt-4 border-t border-gray-200">
+                <h4 className="text-sm font-medium text-gray-700 mb-3 flex items-center gap-2">
+                  <Building size={16} />
+                  Business Information
+                </h4>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-xs font-medium text-gray-500 mb-1">
+                      Company Name
+                    </label>
+                    <span className="text-gray-900">
+                      {b2bPartner.company_name}
+                    </span>
+                  </div>
+                  {b2bPartner.business_type && (
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1">
+                        Business Type
+                      </label>
+                      <span className="text-gray-900">
+                        {b2bPartner.business_type}
+                      </span>
+                    </div>
+                  )}
+                  {canViewB2BPricing() && (
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Credit Limit
+                        </label>
+                        <span className="text-gray-900">
+                          ₹{b2bPartner.credit_limit.toLocaleString()}
+                        </span>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">
+                          Discount
+                        </label>
+                        <span className="text-gray-900">
+                          {b2bPartner.discount_percentage}%
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Action Buttons */}
@@ -155,14 +358,14 @@ export default function UserProfile({ user, onClose, onLogout }: UserProfileProp
               <div className="flex gap-3">
                 <button
                   onClick={handleSaveProfile}
-                  disabled={isLoading}
+                  disabled={isLoading || loading}
                   className={`flex-1 flex items-center justify-center gap-2 py-2 px-4 rounded-lg font-medium transition-colors ${
-                    isLoading
-                      ? 'bg-gray-400 text-white cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                    isLoading || loading
+                      ? "bg-gray-400 text-white cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
                   }`}
                 >
-                  {isLoading ? (
+                  {isLoading || loading ? (
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     <Save size={16} />
@@ -172,8 +375,10 @@ export default function UserProfile({ user, onClose, onLogout }: UserProfileProp
                 <button
                   onClick={() => {
                     setIsEditing(false);
-                    setFullName(user?.user_metadata?.full_name || '');
-                    setError('');
+                    setFullName(user.full_name || "");
+                    setPhone(user.phone || "");
+                    setError("");
+                    clearError();
                   }}
                   className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
                 >

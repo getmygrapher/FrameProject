@@ -47,6 +47,12 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({
   const checkAdminStatus = useCallback(
     async (authUser: User): Promise<AdminUser | null> => {
       try {
+        console.log(
+          "Checking admin status for user:",
+          authUser.id,
+          authUser.email,
+        );
+
         const { data, error } = await supabase
           .from("admin_users")
           .select("*")
@@ -59,6 +65,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({
           return null;
         }
 
+        console.log("Admin status query result:", data);
         return data;
       } catch (error) {
         console.error("Error in checkAdminStatus:", error);
@@ -73,6 +80,7 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({
     try {
       setLoading(true);
       setError(null);
+      console.log("Initializing admin auth...");
 
       // Get current session
       const {
@@ -85,17 +93,22 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({
         setUser(null);
         setAdmin(null);
         setIsAuthenticated(false);
+        setLoading(false);
         return;
       }
 
       if (session?.user) {
+        console.log("Found session for user:", session.user.email);
         setUser(session.user);
 
         // Check if user is admin
         const adminData = await checkAdminStatus(session.user);
+        console.log("Admin status check result:", adminData);
+
         if (adminData) {
           setAdmin(adminData);
           setIsAuthenticated(true);
+          console.log("User is admin, authenticated successfully");
 
           // Update last login
           try {
@@ -107,10 +120,13 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({
             console.error("Error updating last login:", updateError);
           }
         } else {
+          console.log("User is not admin, access denied");
           setAdmin(null);
           setIsAuthenticated(false);
+          setError("Access denied. Admin privileges required.");
         }
       } else {
+        console.log("No session found");
         setUser(null);
         setAdmin(null);
         setIsAuthenticated(false);
@@ -120,7 +136,9 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({
       setUser(null);
       setAdmin(null);
       setIsAuthenticated(false);
-      setError("Failed to initialize authentication");
+      setError(
+        `Failed to initialize authentication: ${error instanceof Error ? error.message : "Unknown error"}`,
+      );
     } finally {
       setLoading(false);
     }
@@ -242,17 +260,62 @@ export const AdminProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  // Logout
+  // Logout with proper token clearing
   const logout = useCallback(async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        throw new Error(error.message);
+      console.log("Starting admin logout...");
+
+      // Clear all authentication tokens and session data
+      const { error: signOutError } = await supabase.auth.signOut({
+        scope: "global",
+      });
+      if (signOutError) {
+        console.error("Sign out error:", signOutError);
       }
+
+      // Clear any local storage items related to auth
+      if (typeof window !== "undefined") {
+        try {
+          // Clear all possible auth-related keys
+          const keysToRemove = [
+            "supabase.auth.token",
+            `sb-${supabase.supabaseUrl.split("//")[1]}-auth-token`,
+            `sb-${supabase.supabaseUrl.split("//")[1].split(".")[0]}-auth-token`,
+          ];
+
+          keysToRemove.forEach((key) => {
+            localStorage.removeItem(key);
+            sessionStorage.removeItem(key);
+          });
+
+          // Clear all localStorage keys that start with 'sb-'
+          Object.keys(localStorage).forEach((key) => {
+            if (key.startsWith("sb-")) {
+              localStorage.removeItem(key);
+            }
+          });
+
+          console.log("Cleared local storage auth tokens");
+        } catch (storageError) {
+          console.error("Error clearing storage:", storageError);
+        }
+      }
+
+      // Clear local state
+      setUser(null);
+      setAdmin(null);
+      setIsAuthenticated(false);
+      setError(null);
+
+      console.log("Admin logout completed successfully");
     } catch (error: any) {
       console.error("Logout error:", error);
-      setError(error.message || "Logout failed");
+      // Even if logout fails, clear the local state
+      setUser(null);
+      setAdmin(null);
+      setIsAuthenticated(false);
+      setError(null);
     } finally {
       setLoading(false);
     }

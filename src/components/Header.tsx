@@ -1,86 +1,85 @@
-import React, { useState } from 'react';
-import { Camera, ShoppingCart, Home, ArrowLeft, Search, User, ChevronDown, Menu, X, Shield } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { useAuth } from '../hooks/useAuth';
-import UserLogin from './auth/UserLogin';
-import UserRegister from './auth/UserRegister';
-import UserProfile from './auth/UserProfile';
+import React, { useState } from "react";
+import {
+  Camera,
+  ShoppingCart,
+  Home,
+  ArrowLeft,
+  Search,
+  User,
+  ChevronDown,
+  Menu,
+  X,
+} from "lucide-react";
+import { useApp } from "../context/AppContext";
 
 export default function Header() {
   const { state, dispatch } = useApp();
-  const { user, isAuthenticated, logout } = useAuth();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All Categories");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [showLogin, setShowLogin] = useState(false);
-  const [showRegister, setShowRegister] = useState(false);
-  const [showProfile, setShowProfile] = useState(false);
 
   const goToHome = () => {
-    dispatch({ type: 'SET_STEP', payload: 'home' });
+    dispatch({ type: "SET_STEP", payload: "home" });
     setIsMobileMenuOpen(false);
   };
 
   const goToCart = () => {
-    dispatch({ type: 'SET_STEP', payload: 'cart' });
+    dispatch({ type: "SET_STEP", payload: "cart" });
     setIsMobileMenuOpen(false);
   };
 
   const goBack = () => {
-    const stepOrder: Array<string> = ['home', 'upload', 'customize', 'cart', 'checkout', 'confirmation'];
+    const stepOrder: Array<string> = [
+      "home",
+      "upload",
+      "customize",
+      "cart",
+      "checkout",
+      "confirmation",
+    ];
     const currentIndex = stepOrder.indexOf(state.currentStep);
     if (currentIndex > 0) {
-      dispatch({ type: 'SET_STEP', payload: stepOrder[currentIndex - 1] as any });
+      dispatch({
+        type: "SET_STEP",
+        payload: stepOrder[currentIndex - 1] as any,
+      });
     }
   };
 
   const startFraming = () => {
-    dispatch({ type: 'SET_STEP', payload: 'upload' });
+    dispatch({ type: "SET_STEP", payload: "upload" });
     setIsMobileMenuOpen(false);
   };
 
-  const goToAdmin = () => {
-    window.open('/admin', '_blank');
-  };
-
-  const handleLoginSuccess = (user: any) => {
-    setShowLogin(false);
-    setShowRegister(false);
-  };
-
-  const handleRegisterSuccess = (user: any) => {
-    setShowLogin(false);
-    setShowRegister(false);
-  };
-
-  const handleLogout = async () => {
-    try {
-      await logout();
-      setShowProfile(false);
-    } catch (error) {
-      console.error('Logout error:', error);
-    }
-  };
-
-  const cartItemCount = state.cart.reduce((sum, item) => sum + item.quantity, 0);
+  const cartItemCount = state.cart.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
 
   const categories = [
-    'All Categories', 'Anniversary', 'Wedding', 'Birthday', 'Couple Gifts', 
-    'New Born', 'Collage', 'Family Gifts', 'Friendship'
+    "All Categories",
+    "Anniversary",
+    "Wedding",
+    "Birthday",
+    "Couple Gifts",
+    "New Born",
+    "Collage",
+    "Family Gifts",
+    "Friendship",
   ];
 
   const mainNavItems = [
-    { label: 'Home', action: goToHome },
-    { label: 'Anniversary', action: startFraming },
-    { label: 'Wedding', action: startFraming },
-    { label: 'Birthday', action: startFraming },
-    { label: 'Couple Gifts', action: startFraming },
-    { label: 'New Born', action: startFraming },
-    { label: 'Collage', action: startFraming },
-    { label: 'Family Gifts', action: startFraming },
-    { label: 'Friendship', action: startFraming },
-    { label: 'About Us', action: () => {} },
-    { label: 'Contact Us', action: () => {} }
+    { label: "Home", action: goToHome },
+    { label: "Anniversary", action: startFraming },
+    { label: "Wedding", action: startFraming },
+    { label: "Birthday", action: startFraming },
+    { label: "Couple Gifts", action: startFraming },
+    { label: "New Born", action: startFraming },
+    { label: "Collage", action: startFraming },
+    { label: "Family Gifts", action: startFraming },
+    { label: "Friendship", action: startFraming },
+    { label: "About Us", action: () => {} },
+    { label: "Contact Us", action: () => {} },
   ];
 
   return (
@@ -100,13 +99,6 @@ export default function Header() {
                 <button className="text-gray-600 hover:text-gray-900 transition-colors">
                   Help
                 </button>
-                <button
-                  onClick={goToAdmin}
-                  className="flex items-center gap-1 text-gray-600 hover:text-blue-600 transition-colors"
-                >
-                  <Shield size={14} />
-                  Admin
-                </button>
               </div>
             </div>
           </div>
@@ -125,8 +117,12 @@ export default function Header() {
                   <Camera size={28} className="text-white" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900">FrameCraft Pro</h1>
-                  <p className="text-xs text-blue-600 font-medium">Crafting Memories Forever</p>
+                  <h1 className="text-2xl font-bold text-gray-900">
+                    FrameCraft Pro
+                  </h1>
+                  <p className="text-xs text-blue-600 font-medium">
+                    Crafting Memories Forever
+                  </p>
                 </div>
               </button>
             </div>
@@ -146,7 +142,10 @@ export default function Header() {
                       </option>
                     ))}
                   </select>
-                  <ChevronDown size={16} className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none" />
+                  <ChevronDown
+                    size={16}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none"
+                  />
                 </div>
                 <div className="relative flex-1">
                   <input
@@ -165,63 +164,20 @@ export default function Header() {
 
             {/* Right Side Actions */}
             <div className="flex items-center gap-4">
-              {/* User Account - Hidden on mobile */}
-              <div className="hidden lg:flex items-center gap-2">
-                {isAuthenticated && user ? (
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setShowProfile(true)}
-                      className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-                    >
-                      {user.user_metadata?.avatar_url ? (
-                        <img
-                          src={user.user_metadata.avatar_url}
-                          alt="Profile"
-                          className="w-8 h-8 rounded-full object-cover"
-                        />
-                      ) : (
-                        <User size={20} />
-                      )}
-                      <span className="text-sm font-medium">
-                        {user.user_metadata?.full_name || user.email}
-                      </span>
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <User size={20} className="text-gray-600" />
-                    <div className="text-sm">
-                      <button
-                        onClick={() => setShowLogin(true)}
-                        className="text-gray-600 hover:text-gray-900 transition-colors"
-                      >
-                        Login
-                      </button>
-                      <span className="text-gray-400 mx-1">|</span>
-                      <button
-                        onClick={() => setShowRegister(true)}
-                        className="text-gray-600 hover:text-gray-900 transition-colors"
-                      >
-                        Register
-                      </button>
-                    </div>
-                  </div>
-                )}
-              </div>
-
               {/* Back Button - Show when not on home page */}
-              {state.currentStep !== 'home' && state.currentStep !== 'confirmation' && (
-                <button
-                  onClick={goBack}
-                  className="hidden sm:flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  <ArrowLeft size={16} />
-                  <span className="hidden sm:inline">Back</span>
-                </button>
-              )}
+              {state.currentStep !== "home" &&
+                state.currentStep !== "confirmation" && (
+                  <button
+                    onClick={goBack}
+                    className="hidden sm:flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition-colors"
+                  >
+                    <ArrowLeft size={16} />
+                    <span className="hidden sm:inline">Back</span>
+                  </button>
+                )}
 
               {/* Home Button - Show when not on home page */}
-              {state.currentStep !== 'home' && (
+              {state.currentStep !== "home" && (
                 <button
                   onClick={goToHome}
                   className="hidden sm:flex items-center gap-2 px-3 py-2 text-gray-600 hover:text-gray-900 transition-colors"
@@ -275,7 +231,10 @@ export default function Header() {
         {/* Mobile Menu Overlay */}
         {isMobileMenuOpen && (
           <div className="fixed inset-0 z-50 md:hidden">
-            <div className="fixed inset-0 bg-black bg-opacity-50" onClick={() => setIsMobileMenuOpen(false)} />
+            <div
+              className="fixed inset-0 bg-black bg-opacity-50"
+              onClick={() => setIsMobileMenuOpen(false)}
+            />
             <div className="fixed top-0 right-0 h-full w-80 bg-white shadow-xl">
               <div className="flex items-center justify-between p-4 border-b">
                 <h2 className="text-lg font-semibold text-gray-900">Menu</h2>
@@ -297,7 +256,10 @@ export default function Header() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  <Search size={20} className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                  <Search
+                    size={20}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400"
+                  />
                 </div>
               </div>
 
@@ -317,65 +279,11 @@ export default function Header() {
 
                 {/* Mobile User Actions */}
                 <div className="border-t p-4 space-y-2">
-                  {isAuthenticated && user ? (
-                    <>
-                      <button
-                        onClick={() => {
-                          setShowProfile(true);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg flex items-center gap-2"
-                      >
-                        <User size={16} />
-                        Profile
-                      </button>
-                      <button
-                        onClick={() => {
-                          handleLogout();
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg"
-                      >
-                        Sign Out
-                      </button>
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => {
-                          setShowLogin(true);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg"
-                      >
-                        Login
-                      </button>
-                      <button
-                        onClick={() => {
-                          setShowRegister(true);
-                          setIsMobileMenuOpen(false);
-                        }}
-                        className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg"
-                      >
-                        Register
-                      </button>
-                    </>
-                  )}
                   <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg">
                     Track Order
                   </button>
                   <button className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg">
                     Help & Support
-                  </button>
-                  <button
-                    onClick={() => {
-                      goToAdmin();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="w-full text-left px-4 py-3 text-gray-700 hover:bg-gray-50 transition-colors rounded-lg flex items-center gap-2"
-                  >
-                    <Shield size={16} />
-                    Admin Panel
                   </button>
                 </div>
               </div>
@@ -383,37 +291,6 @@ export default function Header() {
           </div>
         )}
       </header>
-
-      {/* Auth Modals */}
-      {showLogin && (
-        <UserLogin
-          onClose={() => setShowLogin(false)}
-          onSwitchToRegister={() => {
-            setShowLogin(false);
-            setShowRegister(true);
-          }}
-          onLoginSuccess={handleLoginSuccess}
-        />
-      )}
-
-      {showRegister && (
-        <UserRegister
-          onClose={() => setShowRegister(false)}
-          onSwitchToLogin={() => {
-            setShowRegister(false);
-            setShowLogin(true);
-          }}
-          onRegisterSuccess={handleRegisterSuccess}
-        />
-      )}
-
-      {showProfile && user && (
-        <UserProfile
-          user={user}
-          onClose={() => setShowProfile(false)}
-          onLogout={handleLogout}
-        />
-      )}
     </>
   );
 }

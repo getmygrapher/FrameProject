@@ -6,28 +6,30 @@ import {
   EyeOff,
   Chrome,
   ArrowLeft,
-  User,
+  Building,
   AlertCircle,
+  CheckCircle,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "../../context/AuthContext";
 
-interface UserLoginProps {
+interface B2BLoginProps {
   onClose: () => void;
   onSwitchToRegister: () => void;
-  onLoginSuccess: (user: any) => void;
+  onLoginSuccess: () => void;
 }
 
-export default function UserLogin({
+export default function B2BLogin({
   onClose,
   onSwitchToRegister,
   onLoginSuccess,
-}: UserLoginProps) {
-  const { login, loginWithGoogle, loading, error } = useAuth();
+}: B2BLoginProps) {
+  const { login, loading, error } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleEmailLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
 
     try {
@@ -41,7 +43,7 @@ export default function UserLogin({
   const handleGoogleLogin = async () => {
     try {
       await loginWithGoogle();
-      // The OAuth flow will handle the redirect
+      // OAuth will redirect, so we don't need to handle success here
     } catch (err) {
       // Error is handled by the context
     }
@@ -51,7 +53,19 @@ export default function UserLogin({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
       <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Welcome Back</h2>
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <Building size={24} className="text-blue-600" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                B2B Partner Login
+              </h2>
+              <p className="text-sm text-gray-600">
+                Access your business account
+              </p>
+            </div>
+          </div>
           <button
             onClick={onClose}
             className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
@@ -70,13 +84,38 @@ export default function UserLogin({
           </div>
         )}
 
-        <form onSubmit={handleEmailLogin} className="space-y-6">
+        {/* B2B Benefits */}
+        <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+          <h3 className="font-semibold text-blue-900 mb-2">
+            B2B Partner Benefits
+          </h3>
+          <ul className="space-y-1 text-sm text-blue-800">
+            <li className="flex items-center gap-2">
+              <CheckCircle size={14} className="text-blue-600" />
+              Wholesale pricing and bulk discounts
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle size={14} className="text-blue-600" />
+              Extended payment terms
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle size={14} className="text-blue-600" />
+              Priority customer support
+            </li>
+            <li className="flex items-center gap-2">
+              <CheckCircle size={14} className="text-blue-600" />
+              Custom order management
+            </li>
+          </ul>
+        </div>
+
+        <form onSubmit={handleLogin} className="space-y-6">
           <div>
             <label
               htmlFor="email"
               className="block text-sm font-medium text-gray-700 mb-2"
             >
-              Email Address
+              Business Email Address
             </label>
             <div className="relative">
               <Mail
@@ -89,7 +128,7 @@ export default function UserLogin({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
-                placeholder="Enter your email"
+                placeholder="Enter your business email"
                 required
               />
             </div>
@@ -141,7 +180,7 @@ export default function UserLogin({
                 Signing in...
               </div>
             ) : (
-              "Sign In"
+              "Sign In to Business Account"
             )}
           </button>
         </form>
@@ -170,20 +209,34 @@ export default function UserLogin({
           Continue with Google
         </button>
 
-        <div className="mt-6 text-center">
+        <div className="mt-6 text-center space-y-3">
           <button
             onClick={onSwitchToRegister}
             className="text-blue-600 hover:text-blue-700 transition-colors font-medium"
             disabled={loading}
           >
-            Don't have an account? Sign up
+            Don't have a business account? Apply now
           </button>
+
+          <div className="text-sm text-gray-600">
+            <button className="hover:text-gray-900 transition-colors">
+              Forgot your password?
+            </button>
+          </div>
         </div>
 
-        <div className="mt-4 text-center">
-          <button className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-            Forgot your password?
-          </button>
+        {/* Account Status Info */}
+        <div className="mt-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+          <div className="flex items-start gap-2">
+            <Clock size={16} className="text-yellow-600 flex-shrink-0 mt-0.5" />
+            <div className="text-sm text-yellow-800">
+              <p className="font-medium">Account Verification Required</p>
+              <p>
+                New B2B accounts require approval before accessing wholesale
+                pricing.
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </div>

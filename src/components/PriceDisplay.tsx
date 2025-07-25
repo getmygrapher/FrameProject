@@ -1,7 +1,7 @@
-import React from 'react';
-import { ShoppingCart, Plus } from 'lucide-react';
-import { useApp } from '../context/AppContext';
-import { calculateFramePrice, formatPrice } from '../utils/pricing';
+import React from "react";
+import { ShoppingCart, Plus } from "lucide-react";
+import { useApp } from "../context/AppContext";
+import { calculateFramePrice, formatPrice } from "../utils/pricing";
 
 export default function PriceDisplay() {
   const { state, dispatch } = useApp();
@@ -10,30 +10,41 @@ export default function PriceDisplay() {
 
   const price = calculateFramePrice(state.frameConfig);
 
+  // Handle NaN or invalid price
+  const isValidPrice = !isNaN(price) && isFinite(price) && price > 0;
+  const displayPrice = isValidPrice ? price : 25.99; // Fallback to base price
+
   const addToCart = () => {
     dispatch({
-      type: 'ADD_TO_CART',
+      type: "ADD_TO_CART",
       payload: {
         photo: state.photo!,
         frame: state.frameConfig,
-        price
-      }
+        price: displayPrice,
+      },
     });
-    
+
     // Show success feedback or navigate to cart
     setTimeout(() => {
-      dispatch({ type: 'SET_STEP', payload: 'cart' });
+      dispatch({ type: "SET_STEP", payload: "cart" });
     }, 500);
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-lg p-6">
+    <div className="bg-white rounded-xl shadow-lg p-6 relative z-10">
       <div className="text-center space-y-4">
         <div>
           <div className="text-sm text-gray-600 mb-1">Total Price</div>
-          <div className="text-4xl font-bold text-gray-900">{formatPrice(price)}</div>
+          <div className="text-4xl font-bold text-gray-900">
+            {formatPrice(displayPrice)}
+            {!isValidPrice && (
+              <div className="text-xs text-red-500 mt-1">
+                Price calculation error - showing base price
+              </div>
+            )}
+          </div>
         </div>
-        
+
         <div className="space-y-2 text-sm text-gray-600">
           <div className="flex justify-between">
             <span>Base Frame ({state.frameConfig.size.displayName})</span>
@@ -41,15 +52,30 @@ export default function PriceDisplay() {
           </div>
           <div className="flex justify-between">
             <span>{state.frameConfig.material.name}</span>
-            <span>+{Math.round((state.frameConfig.material.priceMultiplier - 1) * 100)}%</span>
+            <span>
+              +
+              {Math.round(
+                (state.frameConfig.material.priceMultiplier - 1) * 100,
+              )}
+              %
+            </span>
           </div>
           <div className="flex justify-between">
             <span>{state.frameConfig.color.name}</span>
-            <span>+{Math.round((state.frameConfig.color.priceMultiplier - 1) * 100)}%</span>
+            <span>
+              +{Math.round((state.frameConfig.color.priceMultiplier - 1) * 100)}
+              %
+            </span>
           </div>
           <div className="flex justify-between">
             <span>Thickness ({state.frameConfig.thickness.name})</span>
-            <span>+{Math.round((state.frameConfig.thickness.priceMultiplier - 1) * 100)}%</span>
+            <span>
+              +
+              {Math.round(
+                (state.frameConfig.thickness.priceMultiplier - 1) * 100,
+              )}
+              %
+            </span>
           </div>
           {state.frameConfig.border.enabled && (
             <div className="flex justify-between">
@@ -60,7 +86,7 @@ export default function PriceDisplay() {
           <div className="border-t pt-2 mt-2 border-gray-200">
             <div className="flex justify-between font-semibold">
               <span>Total</span>
-              <span>{formatPrice(price)}</span>
+              <span>{formatPrice(displayPrice)}</span>
             </div>
           </div>
         </div>

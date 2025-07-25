@@ -2,6 +2,7 @@ import React from "react";
 import { useRoutes } from "react-router-dom";
 import routes from "tempo-routes";
 import { AppProvider, useApp } from "./context/AppContext";
+import ErrorBoundary from "./components/ErrorBoundary";
 import Header from "./components/Header";
 import StepIndicator from "./components/StepIndicator";
 import PhotoUpload from "./components/PhotoUpload";
@@ -12,6 +13,7 @@ import Cart from "./components/Cart";
 import Checkout from "./components/Checkout";
 import OrderConfirmation from "./components/OrderConfirmation";
 import LandingPage from "./components/LandingPage";
+import ProductPage from "./components/ProductPage";
 
 function AppContent() {
   const { state } = useApp();
@@ -20,6 +22,9 @@ function AppContent() {
     switch (state.currentStep) {
       case "home":
         return <LandingPage />;
+
+      case "product":
+        return <ProductPage />;
 
       case "upload":
         return <PhotoUpload />;
@@ -31,8 +36,10 @@ function AppContent() {
               <FrameCustomizer />
             </div>
             <div className="space-y-6">
-              <FramePreview />
-              <PriceDisplay />
+              <div className="sticky top-4 space-y-6">
+                <FramePreview />
+                <PriceDisplay />
+              </div>
             </div>
           </div>
         );
@@ -51,10 +58,12 @@ function AppContent() {
     }
   };
 
-  // Don't show header on landing page for cleaner design
-  const showHeader = state.currentStep !== "home";
+  // Don't show header on landing page and product page for cleaner design
+  const showHeader =
+    state.currentStep !== "home" && state.currentStep !== "product";
   const showStepIndicator =
     state.currentStep !== "home" &&
+    state.currentStep !== "product" &&
     state.currentStep !== "confirmation" &&
     state.photo;
 
@@ -98,9 +107,11 @@ function AppContent() {
 
 function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }
 

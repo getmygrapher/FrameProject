@@ -13,15 +13,7 @@ if (!supabaseUrl || !supabaseAnonKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: true,
-    flowType: "pkce",
-    debug: import.meta.env.DEV,
-  },
-});
+export const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
 // Database types
 export interface Category {
@@ -45,50 +37,6 @@ export interface Tag {
   created_at: string;
 }
 
-export interface UserRole {
-  id: string;
-  name: "b2c_customer" | "b2b_partner" | "admin" | "super_admin";
-  display_name: string;
-  description?: string;
-  permissions: Record<string, any>;
-  created_at: string;
-}
-
-export interface User {
-  id: string;
-  email: string;
-  full_name?: string;
-  phone?: string;
-  role_id: string;
-  is_active: boolean;
-  email_verified: boolean;
-  phone_verified: boolean;
-  created_at: string;
-  updated_at: string;
-  last_login?: string;
-  role?: UserRole;
-}
-
-export interface B2BAccount {
-  id: string;
-  user_id: string;
-  company_name: string;
-  business_type?: string;
-  tax_id?: string;
-  business_address?: Record<string, any>;
-  contact_person?: string;
-  contact_phone?: string;
-  contact_email?: string;
-  credit_limit: number;
-  payment_terms: number;
-  discount_percentage: number;
-  status: "pending" | "approved" | "suspended" | "rejected";
-  approved_by?: string;
-  approved_at?: string;
-  created_at: string;
-  updated_at: string;
-}
-
 export interface Product {
   id: string;
   name: string;
@@ -106,8 +54,7 @@ export interface Product {
   height?: number;
   depth?: number;
   base_price: number;
-  b2c_price: number;
-  b2b_price?: number;
+  price: number;
   cost_price?: number;
   stock_quantity: number;
   low_stock_threshold: number;
@@ -146,8 +93,7 @@ export interface ProductVariant {
   color_hex?: string;
   material_finish?: string;
   price_adjustment: number;
-  b2c_price?: number;
-  b2b_price?: number;
+  price?: number;
   stock_quantity: number;
   is_active: boolean;
   created_at: string;
@@ -157,49 +103,12 @@ export interface ProductVariant {
 export interface Review {
   id: string;
   product_id: string;
-  user_id: string;
   rating: number;
   title?: string;
   comment?: string;
   is_verified_purchase: boolean;
   is_approved: boolean;
   helpful_count: number;
-  created_at: string;
-  updated_at: string;
-  user?: User;
-}
-
-export interface WishlistItem {
-  id: string;
-  user_id: string;
-  product_id: string;
-  created_at: string;
-  product?: Product;
-}
-
-export interface CustomOrder {
-  id: string;
-  user_id: string;
-  base_product_id?: string;
-  custom_width?: number;
-  custom_height?: number;
-  custom_material?: string;
-  custom_finish?: string;
-  custom_color?: string;
-  special_instructions?: string;
-  photo_url?: string;
-  photo_specifications?: Record<string, any>;
-  quoted_price?: number;
-  final_price?: number;
-  status:
-    | "quote_requested"
-    | "quoted"
-    | "approved"
-    | "in_production"
-    | "completed"
-    | "cancelled"
-    | "delivered";
-  quote_expires_at?: string;
   created_at: string;
   updated_at: string;
 }
@@ -252,8 +161,6 @@ export interface Order {
   customer_email: string;
   customer_name: string;
   customer_phone?: string;
-  customer_type: "b2c" | "b2b";
-  b2b_account_id?: string;
   shipping_address: {
     firstName: string;
     lastName: string;
@@ -278,14 +185,4 @@ export interface Order {
   payment_status: "pending" | "paid" | "failed" | "refunded";
   created_at: string;
   updated_at: string;
-}
-
-export interface AdminUser {
-  id: string;
-  email: string;
-  full_name?: string;
-  role: "admin" | "super_admin";
-  is_active: boolean;
-  created_at: string;
-  last_login?: string;
 }

@@ -3,7 +3,7 @@ export interface PhotoInfo {
   url: string;
   width: number;
   height: number;
-  orientation: 'portrait' | 'landscape' | 'square';
+  orientation: "portrait" | "landscape" | "square";
   aspectRatio: number;
 }
 
@@ -19,7 +19,7 @@ export interface FrameSize {
 export interface FrameMaterial {
   id: string;
   name: string;
-  category: 'wood' | 'metal';
+  category: "wood" | "metal";
   texture: string;
   priceMultiplier: number;
   colors: FrameColor[];
@@ -51,6 +51,10 @@ export interface FrameConfiguration {
   color: FrameColor;
   thickness: FrameThickness;
   border: BorderOption;
+  zoom: number; // 0.5 to 2.0 scale factor
+  orientation: "auto" | "landscape" | "portrait";
+  offsetX: number; // -100 to 100 percentage offset
+  offsetY: number; // -100 to 100 percentage offset
 }
 
 export interface CartItem {
@@ -75,4 +79,28 @@ export interface CheckoutForm {
   cvv: string;
 }
 
-export type AppStep = 'home' | 'upload' | 'customize' | 'cart' | 'checkout' | 'confirmation';
+export type AppStep =
+  | "home"
+  | "product"
+  | "upload"
+  | "customize"
+  | "cart"
+  | "checkout"
+  | "confirmation";
+
+export interface FrameTemplate {
+  id: string;
+  title: string;
+  category: string;
+  rating: number;
+  reviews: number;
+  originalPrice: number;
+  salePrice?: number;
+  discount?: number;
+  image: string;
+  isPopular?: boolean;
+  isFavorite?: boolean;
+  description?: string;
+  features?: string[];
+  specifications?: Record<string, string>;
+}
