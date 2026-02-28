@@ -14,6 +14,7 @@ export interface FrameSize {
   height: number;
   displayName: string;
   popular?: boolean;
+  priceMultiplier?: number;
 }
 
 export interface FrameMaterial {
@@ -22,6 +23,7 @@ export interface FrameMaterial {
   category: 'wood' | 'metal';
   texture: string;
   priceMultiplier: number;
+  photoUrl?: string;
   colors: FrameColor[];
 }
 

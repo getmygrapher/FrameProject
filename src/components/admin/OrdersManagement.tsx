@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Search, Filter, Eye, Edit, Package, Truck, 
+  Search, Filter, Eye, Package, Truck, 
   CheckCircle, XCircle, Calendar, Mail, Phone, Download 
 } from 'lucide-react';
 import { OrderService } from '../../services/orderService';
@@ -13,6 +13,7 @@ export default function OrdersManagement() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadOrders();
@@ -20,10 +21,13 @@ export default function OrdersManagement() {
 
   const loadOrders = async () => {
     try {
+      setError(null);
       const ordersData = await OrderService.getOrders();
-      setOrders(ordersData);
+      const hydrated = await OrderService.hydrateOrderPhotoUrls(ordersData || []);
+      setOrders(hydrated);
     } catch (error) {
       console.error('Error loading orders:', error);
+      setError('Failed to load orders. Please refresh and try again.');
     } finally {
       setLoading(false);
     }
@@ -41,6 +45,7 @@ export default function OrdersManagement() {
       }
     } catch (error) {
       console.error('Error updating order status:', error);
+      setError('Failed to update order status. Please try again.');
     }
   };
 
@@ -78,7 +83,9 @@ export default function OrdersManagement() {
     try {
       for (let i = 0; i < order.order_items.length; i++) {
         const item = order.order_items[i];
-        await downloadPhoto(item.photo_url, order.order_number, i);
+        const photoUrl = item.signed_photo_url || item.photo_url;
+        if (!photoUrl) continue;
+        await downloadPhoto(photoUrl, order.order_number, i);
         // Add a small delay between downloads to avoid overwhelming the browser
         if (i < order.order_items.length - 1) {
           await new Promise(resolve => setTimeout(resolve, 500));
@@ -88,6 +95,12 @@ export default function OrdersManagement() {
       console.error('Error downloading all photos:', error);
       alert('Error downloading photos. Please try again.');
     }
+  };
+
+  const getItemDisplayName = (frameConfig: Order['order_items'][number]['frame_config']) => {
+    const sizeName = frameConfig.size?.displayName || frameConfig.size?.display_name || frameConfig.size?.name || 'Custom';
+    const materialName = frameConfig.material?.name || 'Frame';
+    return `${sizeName} ${materialName}`.trim();
   };
 
   const filteredOrders = orders.filter(order => {
@@ -140,6 +153,11 @@ export default function OrdersManagement() {
 
   return (
     <div className="p-6">
+      {error && (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+          {error}
+        </div>
+      )}
       <div className="mb-6">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 relative">
@@ -242,8 +260,9 @@ export default function OrdersManagement() {
                       </button>
                       <button
                         onClick={() => downloadAllPhotos(order)}
-                        className="text-green-600 hover:text-green-900 transition-colors"
+                        className="text-green-600 hover:text-green-900 transition-colors disabled:cursor-not-allowed disabled:text-gray-400"
                         title="Download All Photos"
+                        disabled={!order.order_items.some((item) => item.signed_photo_url || item.photo_url)}
                       >
                         <Download size={16} />
                       </button>
@@ -336,25 +355,36 @@ export default function OrdersManagement() {
                   {selectedOrder.order_items.map((item, index) => (
                     <div key={index} className="flex gap-3 p-3 bg-gray-50 rounded-lg">
                       <div className="relative">
-                        <img
-                          src={item.photo_url}
-                          alt="Order item"
-                          className="w-16 h-16 object-cover rounded"
-                        />
+                        {item.signed_photo_url || item.photo_url ? (
+                          <img
+                            src={item.signed_photo_url || item.photo_url}
+                            alt="Order item"
+                            className="w-16 h-16 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="flex h-16 w-16 items-center justify-center rounded bg-gray-200 text-xs text-gray-600">
+                            No photo
+                          </div>
+                        )}
                         <button
-                          onClick={() => downloadPhoto(item.photo_url, selectedOrder.order_number, index)}
-                          className="absolute -top-1 -right-1 w-6 h-6 bg-green-600 text-white rounded-full flex items-center justify-center hover:bg-green-700 transition-colors"
+                          onClick={() => {
+                            const photoUrl = item.signed_photo_url || item.photo_url;
+                            if (!photoUrl) return;
+                            downloadPhoto(photoUrl, selectedOrder.order_number, index);
+                          }}
+                          className="absolute -top-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-green-600 text-white transition-colors hover:bg-green-700 disabled:cursor-not-allowed disabled:bg-gray-400"
                           title="Download Photo"
+                          disabled={!item.signed_photo_url && !item.photo_url}
                         >
                           <Download size={12} />
                         </button>
                       </div>
                       <div className="flex-1">
                         <p className="font-medium text-gray-900">
-                          {item.frame_config.size.displayName} {item.frame_config.material.name} Frame
+                          {getItemDisplayName(item.frame_config)} Frame
                         </p>
                         <p className="text-sm text-gray-600">
-                          {item.frame_config.color.name} • Qty: {item.quantity}
+                          {(item.frame_config.color?.name || 'Default color')} • Qty: {item.quantity}
                         </p>
                         <p className="text-sm font-medium text-gray-900">
                           {formatPrice(item.price * item.quantity)}

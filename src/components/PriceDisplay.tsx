@@ -1,5 +1,5 @@
 import React from 'react';
-import { ShoppingCart, Plus } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { calculateFramePrice, formatPrice } from '../utils/pricing';
 
@@ -9,6 +9,9 @@ export default function PriceDisplay() {
   if (!state.photo) return null;
 
   const price = calculateFramePrice(state.frameConfig);
+  const materialMultiplier = state.frameConfig.material.priceMultiplier;
+  const colorMultiplier = state.frameConfig.color.priceMultiplier;
+  const thicknessMultiplier = state.frameConfig.thickness.priceMultiplier;
 
   const addToCart = () => {
     dispatch({
@@ -41,15 +44,15 @@ export default function PriceDisplay() {
           </div>
           <div className="flex justify-between">
             <span>{state.frameConfig.material.name}</span>
-            <span>+{Math.round((state.frameConfig.material.priceMultiplier - 1) * 100)}%</span>
+            <span>+{Math.round((materialMultiplier - 1) * 100)}%</span>
           </div>
           <div className="flex justify-between">
             <span>{state.frameConfig.color.name}</span>
-            <span>+{Math.round((state.frameConfig.color.priceMultiplier - 1) * 100)}%</span>
+            <span>+{Math.round((colorMultiplier - 1) * 100)}%</span>
           </div>
           <div className="flex justify-between">
             <span>Thickness ({state.frameConfig.thickness.name})</span>
-            <span>+{Math.round((state.frameConfig.thickness.priceMultiplier - 1) * 100)}%</span>
+            <span>+{Math.round((thicknessMultiplier - 1) * 100)}%</span>
           </div>
           {state.frameConfig.border.enabled && (
             <div className="flex justify-between">

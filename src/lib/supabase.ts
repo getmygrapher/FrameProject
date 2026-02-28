@@ -11,6 +11,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables. Please check your .env file.');
 }
 
+if (typeof supabaseAnonKey === 'string' && !supabaseAnonKey.startsWith('eyJ')) {
+  throw new Error('Invalid Supabase anon key format. Expected a JWT starting with "eyJ".');
+}
+
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -63,6 +67,23 @@ export interface FrameThickness {
   created_at: string;
 }
 
+export interface OrderItemFrameConfig {
+  size?: { displayName?: string; display_name?: string; name?: string };
+  material?: { name?: string };
+  color?: { name?: string };
+  [key: string]: unknown;
+}
+
+export interface OrderItem {
+  id: string;
+  photo_url?: string;
+  photo_path?: string;
+  signed_photo_url?: string;
+  frame_config: OrderItemFrameConfig;
+  price: number;
+  quantity: number;
+}
+
 export interface Order {
   id: string;
   order_number: string;
@@ -77,13 +98,7 @@ export interface Order {
     state: string;
     zipCode: string;
   };
-  order_items: Array<{
-    id: string;
-    photo_url: string;
-    frame_config: any;
-    price: number;
-    quantity: number;
-  }>;
+  order_items: OrderItem[];
   subtotal: number;
   shipping_cost: number;
   total_amount: number;

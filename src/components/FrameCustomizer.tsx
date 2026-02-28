@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { ArrowLeft, Palette, Ruler, Settings } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { FrameService } from '../services/frameService';
-import { FrameMaterial, FrameSize, FrameThickness } from '../lib/supabase';
+import type { FrameConfiguration, FrameMaterial, FrameSize, FrameThickness } from '../types';
 import { borderColors, borderWidthOptions } from '../data/frameOptions';
 
 export default function FrameCustomizer() {
@@ -12,11 +12,11 @@ export default function FrameCustomizer() {
   const [thickness, setThickness] = useState<FrameThickness[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    loadFrameData();
-  }, []);
+  const updateConfig = useCallback((updates: Partial<FrameConfiguration>) => {
+    dispatch({ type: 'UPDATE_FRAME_CONFIG', payload: updates });
+  }, [dispatch]);
 
-  const loadFrameData = async () => {
+  const loadFrameData = useCallback(async () => {
     try {
       const [materialsData, sizesData, thicknessData] = await Promise.all([
         FrameService.getFrameMaterials(),
@@ -41,12 +41,12 @@ export default function FrameCustomizer() {
       }
 
       if (sizesData.length > 0 && !state.frameConfig.size.id) {
-        const defaultSize = sizesData.find(s => s.is_popular) || sizesData[0];
+        const defaultSize = sizesData.find((s) => s.popular) || sizesData[0];
         updateConfig({ size: defaultSize });
       }
 
       if (thicknessData.length > 0 && !state.frameConfig.thickness.id) {
-        const defaultThickness = thicknessData.find(t => t.name === '1/2"') || thicknessData[0];
+        const defaultThickness = thicknessData.find((t) => t.name === '1/2"') || thicknessData[0];
         updateConfig({ thickness: defaultThickness });
       }
     } catch (error) {
@@ -54,11 +54,11 @@ export default function FrameCustomizer() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [state.frameConfig.material.id, state.frameConfig.size.id, state.frameConfig.thickness.id, updateConfig]);
 
-  const updateConfig = (updates: any) => {
-    dispatch({ type: 'UPDATE_FRAME_CONFIG', payload: updates });
-  };
+  useEffect(() => {
+    loadFrameData();
+  }, [loadFrameData]);
 
   const goBack = () => {
     dispatch({ type: 'SET_STEP', payload: 'upload' });
@@ -127,11 +127,11 @@ export default function FrameCustomizer() {
                     ? 'border-blue-500 bg-blue-50 text-blue-900'
                     : 'border-gray-200 hover:border-gray-300'
                   }
-                  ${size.is_popular ? 'ring-2 ring-amber-400 ring-opacity-50' : ''}
+                  ${size.popular ? 'ring-2 ring-amber-400 ring-opacity-50' : ''}
                 `}
               >
-                <div className="font-semibold">{size.display_name}</div>
-                {size.is_popular && (
+                <div className="font-semibold">{size.displayName}</div>
+                {size.popular && (
                   <div className="text-xs text-amber-600 font-medium mt-1">Popular</div>
                 )}
               </button>
@@ -151,7 +151,7 @@ export default function FrameCustomizer() {
                 key={material.id}
                 onClick={() => updateConfig({ 
                   material, 
-                  color: material.colors?.[0] || { id: '', name: 'Default', hex_code: '#8B4513', price_multiplier: 1.0 }
+                  color: material.colors?.[0] || { id: '', name: 'Default', hex: '#8B4513', priceMultiplier: 1.0 }
                 })}
                 className={`
                   p-4 rounded-lg border-2 text-left transition-all duration-200 hover:shadow-md
@@ -162,9 +162,9 @@ export default function FrameCustomizer() {
                 `}
               >
                 <div className="flex items-center gap-3 mb-2">
-                  {material.photo_url ? (
+                  {material.photoUrl ? (
                     <img
-                      src={material.photo_url}
+                      src={material.photoUrl}
                       alt={material.name}
                       className="w-12 h-12 object-cover rounded border border-gray-200"
                     />
@@ -207,7 +207,7 @@ export default function FrameCustomizer() {
                 >
                   <div
                     className="w-full h-12 rounded-md mb-2 shadow-sm"
-                    style={{ backgroundColor: color.hex_code }}
+                    style={{ backgroundColor: color.hex }}
                   />
                   <div className="text-xs font-medium text-gray-900 text-center">
                     {color.name}

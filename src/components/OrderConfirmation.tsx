@@ -1,10 +1,14 @@
-import React from 'react';
-import { CheckCircle, Download, Mail, Home } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { CheckCircle, Mail, Home } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatPrice } from '../utils/pricing';
+import { OrderService } from '../services/orderService';
+import type { Order } from '../lib/supabase';
 
 export default function OrderConfirmation() {
   const { state, dispatch } = useApp();
+  const [savedOrder, setSavedOrder] = useState<Order | null>(null);
+  const [loadingOrder, setLoadingOrder] = useState(false);
 
   const startOver = () => {
     dispatch({ type: 'RESET_APP' });
@@ -14,9 +18,32 @@ export default function OrderConfirmation() {
     dispatch({ type: 'SET_STEP', payload: 'home' });
   };
 
-  const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const shipping = subtotal >= 75 ? 0 : 9.99;
-  const total = subtotal + shipping;
+  useEffect(() => {
+    const fetchSavedOrder = async () => {
+      if (!state.orderId) return;
+      setLoadingOrder(true);
+      try {
+        const order = await OrderService.getOrderByNumber(state.orderId);
+        setSavedOrder(order);
+      } catch (error) {
+        console.error('Failed to fetch saved order:', error);
+      } finally {
+        setLoadingOrder(false);
+      }
+    };
+
+    fetchSavedOrder();
+  }, [state.orderId]);
+
+  const fallbackSubtotal = useMemo(
+    () => state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+    [state.cart]
+  );
+  const fallbackShipping = fallbackSubtotal >= 75 ? 0 : 9.99;
+  const fallbackTotal = fallbackSubtotal + fallbackShipping;
+
+  const totalAmount = savedOrder?.total_amount ?? fallbackTotal;
+  const customerEmail = savedOrder?.customer_email ?? state.checkoutForm.email;
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-8 text-center max-w-2xl mx-auto">
@@ -36,11 +63,13 @@ export default function OrderConfirmation() {
           </div>
           <div>
             <div className="text-sm text-gray-600">Total Amount</div>
-            <div className="font-semibold text-gray-900">{formatPrice(total)}</div>
+            <div className="font-semibold text-gray-900">
+              {loadingOrder ? 'Loading...' : formatPrice(totalAmount)}
+            </div>
           </div>
           <div>
             <div className="text-sm text-gray-600">Email</div>
-            <div className="font-semibold text-gray-900">{state.checkoutForm.email}</div>
+            <div className="font-semibold text-gray-900">{customerEmail}</div>
           </div>
           <div>
             <div className="text-sm text-gray-600">Estimated Delivery</div>

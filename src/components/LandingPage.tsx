@@ -62,7 +62,7 @@ export default function LandingPage() {
   };
 
   const goToAdmin = () => {
-    window.open('/admin', '_blank');
+    window.open('/admin.html', '_blank');
   };
 
   const handleLoginSuccess = (user: any) => {

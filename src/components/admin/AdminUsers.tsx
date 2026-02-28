@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Shield, User, Mail, Calendar, X, Eye, EyeOff } from 'lucide-react';
+import { Plus, Shield, User, Mail, Calendar, X, Eye, EyeOff } from 'lucide-react';
 import { AdminService } from '../../services/adminService';
 import { AdminUser } from '../../lib/supabase';
 
 export default function AdminUsers() {
+  const adminManagementDeferred = true;
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -116,12 +117,23 @@ export default function AdminUsers() {
         </div>
         <button
           onClick={() => setShowAddForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          disabled={adminManagementDeferred}
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors ${
+            adminManagementDeferred
+              ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+              : 'bg-blue-600 text-white hover:bg-blue-700'
+          }`}
         >
           <Plus size={16} />
           Add Admin User
         </button>
       </div>
+
+      {adminManagementDeferred && (
+        <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4 text-sm text-yellow-800">
+          Admin user creation and deactivation are temporarily disabled.
+        </div>
+      )}
 
       {error && (
         <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
@@ -195,19 +207,7 @@ export default function AdminUsers() {
                   {new Date(user.created_at).toLocaleDateString()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex gap-2">
-                    <button className="text-blue-600 hover:text-blue-900 transition-colors">
-                      <Edit size={16} />
-                    </button>
-                    {user.is_active && (
-                      <button 
-                        onClick={() => deactivateUser(user.id)}
-                        className="text-red-600 hover:text-red-900 transition-colors"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
-                  </div>
+                  <span className="text-sm text-gray-500">Deferred</span>
                 </td>
               </tr>
             ))}
@@ -222,7 +222,12 @@ export default function AdminUsers() {
           <p className="text-gray-600 mb-4">Get started by adding your first admin user.</p>
           <button
             onClick={() => setShowAddForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            disabled={adminManagementDeferred}
+            className={`px-4 py-2 rounded-lg transition-colors ${
+              adminManagementDeferred
+                ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                : 'bg-blue-600 text-white hover:bg-blue-700'
+            }`}
           >
             Add Admin User
           </button>

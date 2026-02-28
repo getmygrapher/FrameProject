@@ -1,12 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Lock, Mail, Eye, EyeOff, Chrome, ArrowLeft, User, AlertCircle, UserPlus } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, Chrome, AlertCircle } from 'lucide-react';
 import { useAdmin } from '../../hooks/useAdmin';
-import ForgotPassword from './ForgotPassword';
-import ResetPassword from './ResetPassword';
-import PasswordResetSuccess from './PasswordResetSuccess';
-import AdminSetup from './AdminSetup';
-
-type LoginView = 'login' | 'forgot-password' | 'reset-password' | 'reset-success' | 'setup';
 
 export default function AdminLogin() {
   const [email, setEmail] = useState('');
@@ -14,36 +8,14 @@ export default function AdminLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [currentView, setCurrentView] = useState<LoginView>('login');
-  const [resetToken, setResetToken] = useState('');
-  const { loginWithEmail, loginWithGoogle, checkFirstTimeSetup } = useAdmin();
-  const [isFirstTimeSetup, setIsFirstTimeSetup] = useState(false);
+  const { loginWithEmail, loginWithGoogle } = useAdmin();
 
-  // Check for reset token in URL on component mount
+  // Cleanup stale reset/setup query state while those flows are deferred
   useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const token = urlParams.get('token');
-    if (token) {
-      setResetToken(token);
-      setCurrentView('reset-password');
-      // Clean up URL
+    if (window.location.search) {
       window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
-
-  // Check if this is first time setup
-  useEffect(() => {
-    const checkSetup = async () => {
-      try {
-        const needsSetup = await checkFirstTimeSetup();
-        setIsFirstTimeSetup(needsSetup);
-      } catch (error) {
-        console.error('Error checking first time setup:', error);
-      }
-    };
-    
-    checkSetup();
-  }, [checkFirstTimeSetup]);
 
   const handleEmailLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -85,44 +57,6 @@ export default function AdminLogin() {
     }
   };
 
-  const handleBackToLogin = () => {
-    setCurrentView('login');
-    setError('');
-    setResetToken('');
-  };
-
-  const handleResetSuccess = () => {
-    setCurrentView('reset-success');
-  };
-
-  const handleSetupComplete = () => {
-    setCurrentView('login');
-    setError('');
-    setIsFirstTimeSetup(false);
-  };
-
-  if (currentView === 'setup') {
-    return <AdminSetup onBackToLogin={handleBackToLogin} onSetupComplete={handleSetupComplete} />;
-  }
-
-  if (currentView === 'forgot-password') {
-    return <ForgotPassword onBackToLogin={handleBackToLogin} />;
-  }
-
-  if (currentView === 'reset-password') {
-    return (
-      <ResetPassword 
-        token={resetToken}
-        onSuccess={handleResetSuccess}
-        onBackToLogin={handleBackToLogin}
-      />
-    );
-  }
-
-  if (currentView === 'reset-success') {
-    return <PasswordResetSuccess onBackToLogin={handleBackToLogin} />;
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
       <div className="max-w-md w-full">
@@ -141,35 +75,6 @@ export default function AdminLogin() {
                 <AlertCircle size={20} className="text-red-600 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <p className="text-red-700 text-sm">{error}</p>
-                  {isFirstTimeSetup && (error.includes('not authorized') || error.includes('Access denied')) && (
-                    <button
-                      onClick={() => setCurrentView('setup')}
-                      className="mt-3 flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                    >
-                      <UserPlus size={16} />
-                      Set up first admin account
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {isFirstTimeSetup && (
-            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start gap-3">
-                <UserPlus size={20} className="text-blue-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h3 className="font-medium text-blue-900 mb-1">First Time Setup</h3>
-                  <p className="text-sm text-blue-800 mb-3">
-                    No admin users found. Set up your first admin account to get started.
-                  </p>
-                  <button
-                    onClick={() => setCurrentView('setup')}
-                    className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors"
-                  >
-                    Set up first admin account →
-                  </button>
                 </div>
               </div>
             </div>
@@ -262,25 +167,19 @@ export default function AdminLogin() {
           </button>
 
           <div className="mt-6 text-center">
-            <button
-              onClick={() => setCurrentView('forgot-password')}
-              className="text-sm text-blue-600 hover:text-blue-500 transition-colors"
-              disabled={isLoading}
-            >
-              Forgot your password?
-            </button>
+            <p className="text-sm text-gray-600">
+              Password reset and first-time admin setup are temporarily disabled.
+            </p>
           </div>
 
-          {!isFirstTimeSetup && (
-            <div className="mt-6 text-center">
-              <div className="text-xs text-gray-500 mb-4">
-                Don't have admin access?
-              </div>
-              <p className="text-xs text-gray-500">
-                Contact your system administrator to get admin privileges.
-              </p>
+          <div className="mt-6 text-center">
+            <div className="text-xs text-gray-500 mb-4">
+              Don't have admin access?
             </div>
-          )}
+            <p className="text-xs text-gray-500">
+              Contact your system administrator to get admin privileges.
+            </p>
+          </div>
 
           <div className="mt-6 text-center">
             <p className="text-xs text-gray-500">

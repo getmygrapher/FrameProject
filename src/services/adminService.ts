@@ -158,143 +158,18 @@ export class AdminService {
 
   // Setup first admin with email/password
   static async setupFirstAdminWithEmail(
-    email: string, 
-    password: string, 
+    email: string,
+    password: string,
     fullName: string
   ): Promise<AdminUser> {
-    try {
-      // First check if setup is actually needed
-      const needsSetup = await this.needsFirstTimeSetup();
-      if (!needsSetup) {
-        throw new Error('Admin users already exist. Setup not needed.');
-      }
-
-      // Create auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: fullName
-          }
-        }
-      });
-
-      if (authError) {
-        console.error('Auth signup error:', authError);
-        throw new Error(authError.message);
-      }
-
-      if (!authData.user) {
-        throw new Error('Failed to create user account');
-      }
-
-      // Create admin record
-      const { data: adminData, error: adminError } = await supabase
-        .from('admin_users')
-        .insert({
-          id: authData.user.id,
-          email,
-          full_name: fullName,
-          role: 'super_admin',
-          is_active: true
-        })
-        .select()
-        .single();
-
-      if (adminError) {
-        console.error('Error creating admin record:', adminError);
-        // Clean up auth user if admin creation fails
-        try {
-          await supabase.auth.admin.deleteUser(authData.user.id);
-        } catch (cleanupError) {
-          console.error('Error cleaning up auth user:', cleanupError);
-        }
-        throw new Error('Failed to create admin record');
-      }
-
-      return adminData;
-    } catch (error) {
-      console.error('Error in setupFirstAdminWithEmail:', error);
-      throw error;
-    }
+    console.info('First-time admin setup is deferred.');
+    throw new Error('First-time admin setup is temporarily disabled.');
   }
 
   // Setup first admin with Google OAuth
   static async setupFirstAdminWithGoogle(): Promise<AdminUser> {
-    try {
-      // First check if setup is actually needed
-      const needsSetup = await this.needsFirstTimeSetup();
-      if (!needsSetup) {
-        throw new Error('Admin users already exist. Setup not needed.');
-      }
-
-      // Sign in with Google OAuth
-      const { error: authError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/admin.html`,
-          queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-          }
-        }
-      });
-
-      if (authError) {
-        console.error('Google OAuth error:', authError);
-        throw new Error('Google authentication failed');
-      }
-
-      // Wait for the OAuth flow to complete and create admin record
-      return new Promise((resolve, reject) => {
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          if (event === 'SIGNED_IN' && session?.user) {
-            subscription.unsubscribe();
-            
-            try {
-              // Create admin record for the authenticated user
-              const { data: adminData, error: adminError } = await supabase
-                .from('admin_users')
-                .insert({
-                  id: session.user.id,
-                  email: session.user.email!,
-                  full_name: session.user.user_metadata?.full_name || session.user.user_metadata?.name || session.user.email,
-                  role: 'super_admin',
-                  is_active: true
-                })
-                .select()
-                .single();
-
-              if (adminError) {
-                console.error('Error creating admin record:', adminError);
-                await supabase.auth.signOut();
-                reject(new Error('Failed to create admin record'));
-                return;
-              }
-
-              resolve(adminData);
-            } catch (error) {
-              subscription.unsubscribe();
-              await supabase.auth.signOut();
-              reject(error);
-            }
-          } else if (event === 'SIGNED_OUT') {
-            subscription.unsubscribe();
-            reject(new Error('Authentication cancelled'));
-          }
-        });
-
-        // Set a timeout to prevent hanging
-        setTimeout(() => {
-          subscription.unsubscribe();
-          reject(new Error('Authentication timeout'));
-        }, 60000); // 60 seconds timeout
-      });
-    } catch (error) {
-      console.error('Error in setupFirstAdminWithGoogle:', error);
-      throw error;
-    }
+    console.info('First-time admin setup is deferred.');
+    throw new Error('First-time admin setup is temporarily disabled.');
   }
 
   // Create new admin user (for existing admins to add new ones)
@@ -304,37 +179,8 @@ export class AdminService {
     fullName: string,
     role: 'admin' | 'super_admin' = 'admin'
   ): Promise<AdminUser> {
-    try {
-      // Verify current user is a super admin
-      const currentAdmin = await this.getCurrentAdmin();
-      if (!currentAdmin || currentAdmin.role !== 'super_admin') {
-        throw new Error('Only super admins can create new admin users');
-      }
-
-      // Use the edge function to create admin user
-      const { data, error } = await supabase.functions.invoke('create-admin-user', {
-        body: {
-          email,
-          password,
-          fullName,
-          role
-        }
-      });
-
-      if (error) {
-        console.error('Error calling create-admin-user function:', error);
-        throw new Error('Failed to create admin user');
-      }
-
-      if (!data.success) {
-        throw new Error(data.error || 'Failed to create admin user');
-      }
-
-      return data.admin;
-    } catch (error) {
-      console.error('Error in createAdmin:', error);
-      throw error;
-    }
+    console.info('Admin user creation is deferred.');
+    throw new Error('Admin user creation is temporarily disabled.');
   }
 
   // Admin logout

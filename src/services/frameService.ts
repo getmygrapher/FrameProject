@@ -1,4 +1,41 @@
-import { supabase, FrameMaterial, FrameColor, FrameSize, FrameThickness } from '../lib/supabase';
+import { supabase, FrameMaterial as DbFrameMaterial, FrameColor as DbFrameColor, FrameSize as DbFrameSize, FrameThickness as DbFrameThickness } from '../lib/supabase';
+import type { FrameMaterial, FrameColor, FrameSize, FrameThickness } from '../types';
+
+type DbMaterialWithColors = DbFrameMaterial & { colors?: DbFrameColor[] };
+
+const mapColorToUi = (color: DbFrameColor): FrameColor => ({
+  id: color.id,
+  name: color.name,
+  hex: color.hex_code,
+  priceMultiplier: Number(color.price_multiplier)
+});
+
+const mapMaterialToUi = (material: DbMaterialWithColors): FrameMaterial => ({
+  id: material.id,
+  name: material.name,
+  category: material.category,
+  texture: material.texture,
+  priceMultiplier: Number(material.price_multiplier),
+  photoUrl: material.photo_url,
+  colors: (material.colors || []).map(mapColorToUi)
+});
+
+const mapSizeToUi = (size: DbFrameSize): FrameSize => ({
+  id: size.id,
+  name: size.name,
+  width: Number(size.width),
+  height: Number(size.height),
+  displayName: size.display_name,
+  popular: size.is_popular,
+  priceMultiplier: Number(size.price_multiplier)
+});
+
+const mapThicknessToUi = (thickness: DbFrameThickness): FrameThickness => ({
+  id: thickness.id,
+  name: thickness.name,
+  inches: Number(thickness.inches),
+  priceMultiplier: Number(thickness.price_multiplier)
+});
 
 export class FrameService {
   // Fetch all frame materials with their colors
@@ -16,7 +53,7 @@ export class FrameService {
       throw error;
     }
 
-    return data || [];
+    return ((data || []) as DbMaterialWithColors[]).map(mapMaterialToUi);
   }
 
   // Fetch all frame sizes
@@ -31,7 +68,7 @@ export class FrameService {
       throw error;
     }
 
-    return data || [];
+    return ((data || []) as DbFrameSize[]).map(mapSizeToUi);
   }
 
   // Fetch all frame thickness options
@@ -46,7 +83,7 @@ export class FrameService {
       throw error;
     }
 
-    return data || [];
+    return ((data || []) as DbFrameThickness[]).map(mapThicknessToUi);
   }
 
   // Upload frame photo to storage
@@ -86,7 +123,7 @@ export class FrameService {
       }>;
     },
     photoFile: File
-  ): Promise<FrameMaterial> {
+  ): Promise<DbFrameMaterial> {
     try {
       // First create the material record
       const { data: material, error: materialError } = await supabase
@@ -144,7 +181,7 @@ export class FrameService {
   }
 
   // Admin functions for managing frame materials
-  static async createFrameMaterial(material: Omit<FrameMaterial, 'id' | 'created_at' | 'updated_at'>): Promise<FrameMaterial> {
+  static async createFrameMaterial(material: Omit<DbFrameMaterial, 'id' | 'created_at' | 'updated_at'>): Promise<DbFrameMaterial> {
     const { data, error } = await supabase
       .from('frame_materials')
       .insert(material)
@@ -159,7 +196,7 @@ export class FrameService {
     return data;
   }
 
-  static async updateFrameMaterial(id: string, updates: Partial<FrameMaterial>): Promise<FrameMaterial> {
+  static async updateFrameMaterial(id: string, updates: Partial<DbFrameMaterial>): Promise<DbFrameMaterial> {
     const { data, error } = await supabase
       .from('frame_materials')
       .update(updates)
@@ -188,7 +225,7 @@ export class FrameService {
   }
 
   // Admin functions for managing frame colors
-  static async createFrameColor(color: Omit<FrameColor, 'id' | 'created_at'>): Promise<FrameColor> {
+  static async createFrameColor(color: Omit<DbFrameColor, 'id' | 'created_at'>): Promise<DbFrameColor> {
     const { data, error } = await supabase
       .from('frame_colors')
       .insert(color)
@@ -203,7 +240,7 @@ export class FrameService {
     return data;
   }
 
-  static async updateFrameColor(id: string, updates: Partial<FrameColor>): Promise<FrameColor> {
+  static async updateFrameColor(id: string, updates: Partial<DbFrameColor>): Promise<DbFrameColor> {
     const { data, error } = await supabase
       .from('frame_colors')
       .update(updates)
@@ -232,7 +269,7 @@ export class FrameService {
   }
 
   // Admin functions for managing frame sizes
-  static async createFrameSize(size: Omit<FrameSize, 'id' | 'created_at'>): Promise<FrameSize> {
+  static async createFrameSize(size: Omit<DbFrameSize, 'id' | 'created_at'>): Promise<DbFrameSize> {
     const { data, error } = await supabase
       .from('frame_sizes')
       .insert(size)
@@ -247,7 +284,7 @@ export class FrameService {
     return data;
   }
 
-  static async updateFrameSize(id: string, updates: Partial<FrameSize>): Promise<FrameSize> {
+  static async updateFrameSize(id: string, updates: Partial<DbFrameSize>): Promise<DbFrameSize> {
     const { data, error } = await supabase
       .from('frame_sizes')
       .update(updates)
@@ -276,7 +313,7 @@ export class FrameService {
   }
 
   // Admin functions for managing frame thickness
-  static async createFrameThickness(thickness: Omit<FrameThickness, 'id' | 'created_at'>): Promise<FrameThickness> {
+  static async createFrameThickness(thickness: Omit<DbFrameThickness, 'id' | 'created_at'>): Promise<DbFrameThickness> {
     const { data, error } = await supabase
       .from('frame_thickness')
       .insert(thickness)
@@ -291,7 +328,7 @@ export class FrameService {
     return data;
   }
 
-  static async updateFrameThickness(id: string, updates: Partial<FrameThickness>): Promise<FrameThickness> {
+  static async updateFrameThickness(id: string, updates: Partial<DbFrameThickness>): Promise<DbFrameThickness> {
     const { data, error } = await supabase
       .from('frame_thickness')
       .update(updates)

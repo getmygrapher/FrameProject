@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { FrameService } from '../services/frameService';
-import { FrameMaterial, FrameSize, FrameThickness } from '../lib/supabase';
+import type { FrameMaterial, FrameSize, FrameThickness } from '../types';
 
 export function useFrameData() {
   const [materials, setMaterials] = useState<FrameMaterial[]>([]);

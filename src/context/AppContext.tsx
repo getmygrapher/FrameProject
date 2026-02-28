@@ -63,7 +63,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         frameConfig: { ...state.frameConfig, ...action.payload }
       };
     
-    case 'ADD_TO_CART':
+    case 'ADD_TO_CART': {
       const newItem: CartItem = {
         id: Date.now().toString(),
         photo: action.payload.photo,
@@ -72,6 +72,7 @@ function appReducer(state: AppState, action: AppAction): AppState {
         quantity: 1
       };
       return { ...state, cart: [...state.cart, newItem] };
+    }
     
     case 'REMOVE_FROM_CART':
       return {

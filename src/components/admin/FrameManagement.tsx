@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit, Trash2, Save, X, Palette, Upload, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { Plus, Edit, Trash2, X, Upload, Image as ImageIcon, AlertCircle } from 'lucide-react';
 import { FrameService } from '../../services/frameService';
-import { FrameMaterial, FrameSize, FrameThickness } from '../../lib/supabase';
+import type { FrameMaterial, FrameSize, FrameThickness } from '../../types';
 
 type TabType = 'materials' | 'sizes' | 'thickness';
 
@@ -11,7 +11,6 @@ export default function FrameManagement() {
   const [sizes, setSizes] = useState<FrameSize[]>([]);
   const [thickness, setThickness] = useState<FrameThickness[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingItem, setEditingItem] = useState<any>(null);
   const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
@@ -88,24 +87,27 @@ export default function FrameManagement() {
       {activeTab === 'materials' && (
         <MaterialsTab 
           materials={materials} 
-          onEdit={setEditingItem}
-          onRefresh={loadData}
+          onEdit={() => {
+            // edit flow is deferred in this pass
+          }}
         />
       )}
       
       {activeTab === 'sizes' && (
         <SizesTab 
           sizes={sizes} 
-          onEdit={setEditingItem}
-          onRefresh={loadData}
+          onEdit={() => {
+            // edit flow is deferred in this pass
+          }}
         />
       )}
       
       {activeTab === 'thickness' && (
         <ThicknessTab 
           thickness={thickness} 
-          onEdit={setEditingItem}
-          onRefresh={loadData}
+          onEdit={() => {
+            // edit flow is deferred in this pass
+          }}
         />
       )}
 
@@ -123,7 +125,12 @@ export default function FrameManagement() {
   );
 }
 
-function MaterialsTab({ materials, onEdit, onRefresh }: any) {
+interface MaterialsTabProps {
+  materials: FrameMaterial[];
+  onEdit: (material: FrameMaterial) => void;
+}
+
+function MaterialsTab({ materials, onEdit }: MaterialsTabProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <table className="w-full">
@@ -141,9 +148,9 @@ function MaterialsTab({ materials, onEdit, onRefresh }: any) {
           {materials.map((material) => (
             <tr key={material.id}>
               <td className="px-6 py-4 whitespace-nowrap">
-                {material.photo_url ? (
+                {material.photoUrl ? (
                   <img
-                    src={material.photo_url}
+                    src={material.photoUrl}
                     alt={material.name}
                     className="w-16 h-16 object-cover rounded-lg border border-gray-200"
                   />
@@ -160,7 +167,7 @@ function MaterialsTab({ materials, onEdit, onRefresh }: any) {
                 {material.category}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                {material.price_multiplier}x
+                {material.priceMultiplier}x
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex gap-1">
@@ -168,7 +175,7 @@ function MaterialsTab({ materials, onEdit, onRefresh }: any) {
                     <div
                       key={color.id}
                       className="w-6 h-6 rounded-full border border-gray-300"
-                      style={{ backgroundColor: color.hex_code }}
+                      style={{ backgroundColor: color.hex }}
                       title={color.name}
                     />
                   ))}
@@ -200,7 +207,12 @@ function MaterialsTab({ materials, onEdit, onRefresh }: any) {
   );
 }
 
-function SizesTab({ sizes, onEdit, onRefresh }: any) {
+interface SizesTabProps {
+  sizes: FrameSize[];
+  onEdit: (size: FrameSize) => void;
+}
+
+function SizesTab({ sizes, onEdit }: SizesTabProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <table className="w-full">
@@ -224,10 +236,10 @@ function SizesTab({ sizes, onEdit, onRefresh }: any) {
                 {size.width}" × {size.height}"
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                {size.display_name}
+                {size.displayName}
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
-                {size.is_popular ? (
+                {size.popular ? (
                   <span className="px-2 py-1 text-xs bg-yellow-100 text-yellow-800 rounded-full">
                     Popular
                   </span>
@@ -236,7 +248,7 @@ function SizesTab({ sizes, onEdit, onRefresh }: any) {
                 )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                {size.price_multiplier}x
+                {size.priceMultiplier}x
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex gap-2">
@@ -259,7 +271,12 @@ function SizesTab({ sizes, onEdit, onRefresh }: any) {
   );
 }
 
-function ThicknessTab({ thickness, onEdit, onRefresh }: any) {
+interface ThicknessTabProps {
+  thickness: FrameThickness[];
+  onEdit: (item: FrameThickness) => void;
+}
+
+function ThicknessTab({ thickness, onEdit }: ThicknessTabProps) {
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden">
       <table className="w-full">
@@ -281,7 +298,7 @@ function ThicknessTab({ thickness, onEdit, onRefresh }: any) {
                 {item.inches}"
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-gray-500">
-                {item.price_multiplier}x
+                {item.priceMultiplier}x
               </td>
               <td className="px-6 py-4 whitespace-nowrap">
                 <div className="flex gap-2">
@@ -386,9 +403,9 @@ function AddMaterialModal({ onClose, onSuccess }: { onClose: () => void; onSucce
       // Create the material with photo
       await FrameService.createFrameMaterialWithPhoto(formData, photoFile);
       onSuccess();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Error creating material:', error);
-      setError(error.message || 'Failed to create material');
+      setError(error instanceof Error ? error.message : 'Failed to create material');
     } finally {
       setIsSubmitting(false);
     }

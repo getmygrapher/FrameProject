@@ -2,10 +2,12 @@ import React, { useState } from 'react';
 import { ArrowLeft, CreditCard, Lock } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { formatPrice } from '../utils/pricing';
+import { OrderService } from '../services/orderService';
 
 export default function Checkout() {
   const { state, dispatch } = useApp();
   const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState('');
 
   const goBack = () => {
     dispatch({ type: 'SET_STEP', payload: 'cart' });
@@ -20,19 +22,74 @@ export default function Checkout() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isProcessing || state.cart.length === 0) return;
     setIsProcessing(true);
+    setError('');
 
-    // Simulate payment processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      const orderNumber = `FCF-${Date.now().toString().slice(-6)}`;
+      const orderItems = await Promise.all(
+        state.cart.map(async (item) => {
+          const photoPath = await OrderService.uploadOrderPhoto(item.photo.file);
+          return {
+            id: item.id,
+            photo_path: photoPath,
+            frame_config: item.frame,
+            price: item.price,
+            quantity: item.quantity
+          };
+        })
+      );
 
-    const orderId = `FCF-${Date.now().toString().slice(-6)}`;
-    dispatch({ type: 'COMPLETE_ORDER', payload: orderId });
-    setIsProcessing(false);
+      await OrderService.createOrder({
+        order_number: orderNumber,
+        customer_email: state.checkoutForm.email,
+        customer_name: `${state.checkoutForm.firstName} ${state.checkoutForm.lastName}`.trim(),
+        customer_phone: state.checkoutForm.phone,
+        shipping_address: {
+          firstName: state.checkoutForm.firstName,
+          lastName: state.checkoutForm.lastName,
+          address: state.checkoutForm.address,
+          city: state.checkoutForm.city,
+          state: state.checkoutForm.state,
+          zipCode: state.checkoutForm.zipCode
+        },
+        order_items: orderItems,
+        subtotal,
+        shipping_cost: shipping,
+        total_amount: total,
+        status: 'pending',
+        payment_status: 'pending'
+      });
+
+      dispatch({ type: 'COMPLETE_ORDER', payload: orderNumber });
+    } catch (err) {
+      console.error('Checkout failed:', err);
+      setError('Failed to place order. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
   };
 
   const subtotal = state.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const shipping = subtotal >= 75 ? 0 : 9.99;
   const total = subtotal + shipping;
+
+  if (state.cart.length === 0) {
+    return (
+      <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+        <h2 className="text-2xl font-semibold text-gray-900 mb-2">Your cart is empty</h2>
+        <p className="text-gray-600 mb-6">Add items to your cart before checkout.</p>
+        <button
+          onClick={goBack}
+          className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-5 py-3 font-semibold text-white hover:bg-blue-700"
+        >
+          <ArrowLeft size={16} />
+          Back to Cart
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white rounded-xl shadow-lg">
@@ -52,6 +109,11 @@ export default function Checkout() {
       </div>
 
       <form onSubmit={handleSubmit} className="p-6">
+        {error && (
+          <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Order Summary */}
           <div className="lg:order-2">

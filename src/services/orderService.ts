@@ -1,7 +1,51 @@
 import { supabase } from '../lib/supabase';
 import type { Order } from '../lib/supabase';
 
+type OrderItem = Order['order_items'][number];
+
 export class OrderService {
+  static async uploadOrderPhoto(file: File): Promise<string> {
+    const ext = file.name.split('.').pop() || 'jpg';
+    const filePath = `orders/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage
+      .from('order-photos')
+      .upload(filePath, file, { upsert: false });
+
+    if (error) throw error;
+    return filePath;
+  }
+
+  static async getSignedOrderPhotoUrl(photoPath: string): Promise<string | null> {
+    const { data, error } = await supabase.storage
+      .from('order-photos')
+      .createSignedUrl(photoPath, 60 * 10);
+
+    if (error) {
+      console.error('Failed to create signed order photo URL:', error);
+      return null;
+    }
+
+    return data?.signedUrl || null;
+  }
+
+  static async hydrateOrderPhotoUrls(orders: Order[]): Promise<Order[]> {
+    return Promise.all(
+      (orders || []).map(async (order) => {
+        const hydratedItems = await Promise.all(
+          (order.order_items || []).map(async (item: OrderItem) => {
+            if (item.photo_path) {
+              const signedUrl = await this.getSignedOrderPhotoUrl(item.photo_path);
+              return { ...item, signed_photo_url: signedUrl || item.photo_url || null };
+            }
+            return { ...item, signed_photo_url: item.photo_url || null };
+          })
+        );
+
+        return { ...order, order_items: hydratedItems };
+      })
+    );
+  }
+
   static async createOrder(orderData: Omit<Order, 'id' | 'created_at' | 'updated_at'>) {
     const { data, error } = await supabase
       .from('orders')
@@ -29,6 +73,17 @@ export class OrderService {
       .select('*')
       .eq('id', id)
       .single();
+
+    if (error) throw error;
+    return data;
+  }
+
+  static async getOrderByNumber(orderNumber: string) {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('*')
+      .eq('order_number', orderNumber)
+      .maybeSingle();
 
     if (error) throw error;
     return data;
